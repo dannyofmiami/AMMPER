@@ -23,12 +23,12 @@ outputs:
 
 @author: asingh21
 """
-import os as _os, sys as _sys
-_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-import ammper_paths as P  # noqa: E402  (resolves data/ and results/ paths)
+from ammper import paths as P  # resolves data/ and results/ paths
 
 """
-@edited by Daniel Palacios 
+@edited by Daniel Palacios &
+@edited by @dannyofmiami
+
 """
 
 import numpy as np
@@ -47,6 +47,8 @@ import time
 import pandas as pd
 import time
 from sklearn.model_selection import train_test_split
+
+# pip install numpy pandas scikit-learn
 start_time = time.time()
 
 radType = input("Please enter what simulation type you would like to run:\n\ta)150MeV Proton\n\tb)NSRL GCRSim\n\tc)Deep Space\n\td)Gamma\n")
@@ -59,8 +61,8 @@ if radType == "a":
     radGen = 2
     N = 64
     if Gy == 0:
-        radData = 0
-        ROSData = 0
+        radData = np.zeros([1,6],dtype = float)
+        ROSData = np.zeros([1,6],dtype = float)
 elif radType == "b":
     radType = "GCRSim"
     gen = 15
@@ -76,7 +78,7 @@ elif radType == "c":
 elif radType == 'd':
     radType = "Gamma"
     gen = 15
-    radGen = 10
+    radGen = 2
     #radGenE = 10
     N = 64 # real 64 ? 
 
@@ -95,13 +97,11 @@ if ROSType == "a":
 if ROSType == "b":
     ROSType = "Complex ROS"
 
-
-
 # description of simulation to be written to file
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
 
 # results folder name with the time that the simulation completed
-resultsName = time.strftime('%m-%d-%y_%H-%M') + "/"
+resultsName = time.strftime('%m-%d-%y_%H-%M-%S') + "/"
 # determine path that all results will be written to
 resultsFolder = "Results/"
 currPath = os.path.dirname("AMMPER")
@@ -156,7 +156,7 @@ for g in range(1,gen+1):
     if radType == "Gamma":
         if g == radGen:
             
-            dose = 1
+            dose = input("Please enter radiation dose. \n")
             # radData = np.zeros([1, 6], dtype=float)
             # Dose input, radGenE stop point for gamma radiation.
             radData = GammaRadGen(dose)
@@ -469,7 +469,7 @@ if radType == "150 MeV Proton":
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ',')
     # if ROSData != 0: for 0 Gy
-    cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
+    cellPlot(data,gen,radData,ROSData,radGen,N,plots_path)
 
 elif radType == "Deep Space":
     datName = 'deepSpace'
