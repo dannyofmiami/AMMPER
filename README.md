@@ -146,7 +146,7 @@ out = P.figures("my_panel.png")   # creates figures/ if needed
 ```
 
 (Code inside `src/ammper/` itself should use `from ammper import paths as P`
-instead. Zee `CONTRIBUTING.md` since `ammper_paths` is a backward-compatible
+instead — see `CONTRIBUTING.md` — since `ammper_paths` is a backward-compatible
 shim over that module for scripts outside the installed package.)
 
 <!-- The old-to-new mapping is documented at the top of `ammper_paths.py`. Several
