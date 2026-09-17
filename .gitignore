@@ -15,3 +15,6 @@ Thumbs.db
 .venv/
 venv/
 env/
+
+# Simulation output (generated on each run)
+results/

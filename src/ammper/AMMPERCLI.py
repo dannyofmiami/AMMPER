@@ -23,9 +23,7 @@ outputs:
 
 @author: asingh21
 """
-import os as _os, sys as _sys
-_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-import ammper_paths as P  # noqa: E402  (resolves data/ and results/ paths)
+from ammper import paths as P  # resolves data/ and results/ paths
 
 """
 @edited by Daniel Palacios 
@@ -46,19 +44,12 @@ import os
 import time
 import pandas as pd
 import time
-import sys
 from sklearn.model_selection import train_test_split
 start_time = time.time()
 
-# print("ARGUMENTS ARE::::")
-# print(sys.argv)
-
-#radType = input("Please enter what simulation type you would like to run:\n\ta)150MeV Proton\n\tb)NSRL GCRSim\n\tc)Deep Space\n\td)Gamma\n")
-radType = sys.argv[1]
-
+radType = input("Please enter what simulation type you would like to run:\n\ta)150MeV Proton\n\tb)NSRL GCRSim\n\tc)Deep Space\n\td)Gamma\n")
 if radType == "a":
-    #radAmount = input("Please enter radiation dose. Options are: 0, 2.5, 5, 10, 20, 30 Gy.\n")
-    radAmount = sys.argv[4]
+    radAmount = input("Please enter radiation dose. Options are: 0, 2.5, 5, 10, 20, 30 Gy.\n")
     Gy = float(radAmount)
     radType = "150 MeV Proton"
     gen = 15
@@ -68,13 +59,11 @@ if radType == "a":
     if Gy == 0:
         radData = 0
         ROSData = 0
-
 elif radType == "b":
     radType = "GCRSim"
     gen = 15
     radGen = 2
     N = 64
-
 elif radType == "c":
     radType = "Deep Space"
     gen = 15
@@ -85,14 +74,12 @@ elif radType == "c":
 elif radType == 'd':
     radType = "Gamma"
     gen = 15
-    radGen = 2
+    radGen = 10
     #radGenE = 10
     N = 64 # real 64 ? 
 
 
-#cellType = input("Please enter cell type:\n\ta)Wild Type\n\tb)rad51\n")
-cellType = sys.argv[2]
-
+cellType = input("Please enter cell type:\n\ta)Wild Type\n\tb)rad51\n")
 if cellType == "a":
     cellType = "wt"
 elif cellType == "b":
@@ -100,9 +87,7 @@ elif cellType == "b":
 
 # ROS model old and new, ROS Old computes eternal and static ROS free radicals, complex ROS models diffusion and time
 # mechanics.
-# ROSType = input("Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS\n")
-ROSType = sys.argv[3]
-
+ROSType = input("Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS\n")
 if ROSType == "a":
     ROSType = "Basic ROS"
 if ROSType == "b":
@@ -114,9 +99,9 @@ if ROSType == "b":
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
 
 # results folder name with the time that the simulation completed
-resultsName = time.strftime('%m-%d-%y_%H-%M') + "/"
+resultsName = time.strftime('%m-%d-%y_%H-%M-%S') + "/"
 # determine path that all results will be written to
-resultsFolder = P.bulk_aB() + os.sep + sys.argv[5] + "/"
+resultsFolder = "Results/"
 currPath = os.path.dirname("AMMPER")
 allResults_path = os.path.join(currPath,resultsFolder)
 currResult_path = os.path.join(allResults_path,resultsName)
@@ -482,31 +467,28 @@ if radType == "150 MeV Proton":
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ',')
     # if ROSData != 0: for 0 Gy
-    # cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
+    cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
 
 elif radType == "Deep Space":
     datName = 'deepSpace'
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ',')
-    #cellPlot_deepSpace(data,gen,radData,ROSData,N,plots_path)
+    cellPlot_deepSpace(data,gen,radData,ROSData,N,plots_path)
     
 elif radType == "GCRSim":
     datName = 'GCRSim'
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ",")
-    #cellPlot(data,gen,radData,ROSData,radGen,N,plots_path)
+    cellPlot(data,gen,radData,ROSData,radGen,N,plots_path)
 
 elif radType == "Gamma":
     datName = 'Gamma'
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ',')
-    #cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
+    cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
 
-# Add delay to avoid overwritting files within the same minute for BULK runs
 
 
 print("Plots and data written to Results folder.")
 
 print("time elapsed: {:.2f}s".format(time.time() - start_time))
-
-time.sleep(61)
