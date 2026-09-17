@@ -23,12 +23,11 @@ outputs:
 
 @author: asingh21
 """
-import os as _os, sys as _sys
-_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-import ammper_paths as P  # noqa: E402  (resolves data/ and results/ paths)
+from ammper import paths as P  # resolves data/ and results/ paths
 
 """
-@edited by Daniel Palacios 
+@edited by Daniel Palacios & 
+@edited by @dannyofmiami
 """
 
 import numpy as np
@@ -115,7 +114,7 @@ if ROSType == "b":
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
 
 # results folder name with the time that the simulation completed
-resultsName = time.strftime('%m-%d-%y_%H-%M') + "/"
+resultsName = time.strftime('%m-%d-%y_%H-%M-%S') + "/"
 # determine path that all results will be written to
 resultsFolder = P.bulk_gamma() + os.sep + sys.argv[5] + "/"
 currPath = os.path.dirname("AMMPER")
