@@ -779,8 +779,15 @@ class Widget(QWidget):
         self.ui.label_35.setScaledContents(True)
         # Fix: Pass empty string to use already-correct paths
         mm("", self.path1, self.path2, self.path3, self.path4, self.path5, self.path6, self.path7, self.path8, self.path9, self.path10, self.path11, self.path12, self.path13, self.path14, self.path15)
-        # Fix: Open in OS default player, show first plot as placeholder
-        subprocess.call(["open", "visualization.mp4"])
+        # Open in the OS default video player. "open" is macOS-only; dispatch
+        # per platform so this works on Windows and Linux too.
+        video_path = _os.path.join(P.ROOT, "visualization.mp4")
+        if sys.platform == "darwin":
+            subprocess.call(["open", video_path])
+        elif sys.platform == "win32":
+            _os.startfile(video_path)
+        else:
+            subprocess.call(["xdg-open", video_path])
         self.ui.label_35.setPixmap(QPixmap(self.path1))
        
 
