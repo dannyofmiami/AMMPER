@@ -76,6 +76,19 @@ figures/                    generated output (git-ignored, created on demand)
 ammper_paths.py             path resolution — import this, don't hardcode paths
 ```
 
+## Requirements
+
+**Python 3.9–3.11.** `pyproject.toml` enforces this (`requires-python =
+">=3.9,<3.12"`), so `pip install` will refuse to proceed on Python 3.12+
+instead of failing partway through. This isn't a compatibility choice made
+for its own sake — it's the intersection of what AMMPER's exact pinned
+dependency versions (`numpy`, `scipy`, `pandas`, `matplotlib`,
+`scikit-learn`) actually ship prebuilt wheels for; none of them publish a
+3.12 or 3.13 wheel at these pinned versions, on any platform, which would
+otherwise force a slow (and often failing, for anyone without a Fortran/BLAS
+toolchain) source build. CI (`.github/workflows/ci.yml`) tests 3.9 and 3.11
+on Linux, Windows, and macOS.
+
 ## Quick start
 
 AMMPER is a pip-installable package. From a clone of this repository:
