@@ -94,6 +94,8 @@ outputs:
     c: cell object with adjusted parameters
                 
 @author: asingh21
+
+@edited by @dannyofmiami
 """
 
 class Cell:
@@ -362,20 +364,32 @@ class Cell:
             
             return self
      #########################################################################
-    def cellROS(self,g,radGen,ROSData):
+    def cellROS(self,g,radGen,ROSData,radType):
         import random as rand
         import numpy as np
         import pandas as pd
-        
+
         currPos = self.position
         numSSBs = self.numSSBs
         OH = 0
         H2O2 = 0
         nucleus_OH = 0
-        
+
         cellHitBool = 0
         nucleusHitBool = 0
         apopOccurs = 0
+
+        # For Deep Space, ROSData carries an "which generation"
+        # column (same as cellRad's radData) since ROS is
+        # generated continuously, strip it back off and keep only this generation's 
+        # events before handing a fixed width array to pandas below.
+        if radType == "Deep Space":
+            ROSData_all = ROSData
+            ROSData = np.zeros([1,6],dtype = float)
+            for ROSEvent in ROSData_all:
+                eventGen = int(ROSEvent[6])
+                if eventGen == g:
+                    ROSData = np.vstack([ROSData,ROSEvent[0:6]])
 
         # ROSData[0:3]###############################3
         # # pandas =>
@@ -394,7 +408,7 @@ class Cell:
             dp = dp.loc[((dp["Posy"] <= currPos[1] + 2) & (dp["Posy"] >= currPos[1] - 2))]
 
         if dp.empty == False:
-            dp = dp.loc[((dp["Posz"] <= currPos[2]) + 2 & (dp["Posz"] >= currPos[2] - 2))]
+            dp = dp.loc[((dp["Posz"] <= currPos[2] + 2) & (dp["Posz"] >= currPos[2] - 2))]
 
         if dp.empty == False:
             # print('There is likely ROS damage')
@@ -458,7 +472,7 @@ class Cell:
         
         return self
     
-    def cellROS_rad51(self,g,radGen,ROSData):
+    def cellROS_rad51(self,g,radGen,ROSData,radType):
         import random as rand
         import numpy as np
         import pandas as pd
@@ -472,6 +486,18 @@ class Cell:
         cellHitBool = 0
         nucleusHitBool = 0
         apopOccurs = 0
+
+        # For Deep Space, ROSData carries an "which generation"
+        # column (same as cellRad's radData) since ROS is
+        # generated continuously, strip it back off and keep only this generation's 
+        # events before handing a fixed width array to pandas below.
+        if radType == "Deep Space":
+            ROSData_all = ROSData
+            ROSData = np.zeros([1,6],dtype = float)
+            for ROSEvent in ROSData_all:
+                eventGen = int(ROSEvent[6])
+                if eventGen == g:
+                    ROSData = np.vstack([ROSData,ROSEvent[0:6]])
 
         # ROSData[0:3]###############################3
         # # pandas =>
@@ -490,7 +516,7 @@ class Cell:
             dp = dp.loc[((dp["Posy"] <= currPos[1] + 2) & (dp["Posy"] >= currPos[1] - 2))]
 
         if dp.empty == False:
-            dp = dp.loc[((dp["Posz"] <= currPos[2]) + 2 & (dp["Posz"] >= currPos[2] - 2))]
+            dp = dp.loc[((dp["Posz"] <= currPos[2] + 2) & (dp["Posz"] >= currPos[2] - 2))]
 
         if dp.empty == False:
             # print('There is likely ROS damage')
