@@ -258,7 +258,11 @@ for g in range(1,gen+1):
                     radData_trans = np.hstack((radData_trans,genArr))
                     # compile radData from this traversal with all radData
                     radData = np.vstack([radData,radData_trans])
-                    
+
+                    # ROSData_new is not one row per radData_trans row
+                    # genArr must be recomputed at ROSData_new's own length, 
+                    # not reused from the radData_trans tagging above.
+                    genArr = np.ones([len(ROSData_new),1],dtype=int)*g
                     # compile ROSData with the generation indicator
                     ROSData_new = np.hstack((ROSData_new,genArr))
                     #compile ROSData with all ROSData
@@ -356,9 +360,9 @@ for g in range(1,gen+1):
         for c in cells:
             health = c.health
             if cellType == "wt":
-                ROSCell = c.cellROS(g,radGen,ROSData)
+                ROSCell = c.cellROS(g,radGen,ROSData,radType)
             elif cellType == "rad51":
-                ROSCell = c.cellROS_rad51(g,radGen,ROSData)
+                ROSCell = c.cellROS_rad51(g,radGen,ROSData,radType)
             newHealth = ROSCell.health
             if health != newHealth:
                 ROSCellPos = ROSCell.position
