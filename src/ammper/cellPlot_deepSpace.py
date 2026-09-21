@@ -24,7 +24,7 @@ def cellPlot_deepSpace(data,gen,radData,ROSData,N,plots_dir):
     
     minmax = get_fixed_mins_maxs(0, N)
     
-    healthy = '#7FBBDF'
+    healthy = '#479dd1'  # darkened for visibility
     damaged = '#483c6a'
     dead = '#F7AF97'
 
@@ -85,6 +85,7 @@ def cellPlot_deepSpace(data,gen,radData,ROSData,N,plots_dir):
     for g in range(gen+1):
         figName = 'fig' + str(g)
         locals()[figName].savefig(plots_dir + figName)
+        plt.close(locals()[figName])
 
 
 
