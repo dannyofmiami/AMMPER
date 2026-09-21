@@ -379,17 +379,13 @@ class Cell:
         nucleusHitBool = 0
         apopOccurs = 0
 
-        # For Deep Space, ROSData carries an "which generation"
-        # column (same as cellRad's radData) since ROS is
-        # generated continuously, strip it back off and keep only this generation's 
-        # events before handing a fixed width array to pandas below.
         if radType == "Deep Space":
-            ROSData_all = ROSData
-            ROSData = np.zeros([1,6],dtype = float)
-            for ROSEvent in ROSData_all:
-                eventGen = int(ROSEvent[6])
-                if eventGen == g:
-                    ROSData = np.vstack([ROSData,ROSEvent[0:6]])
+            ROSData_all = np.asarray(ROSData)
+            genMask = ROSData_all[:,6].astype(int) == g
+            if genMask.any():
+                ROSData = ROSData_all[genMask][:,0:6]
+            else:
+                ROSData = np.zeros([1,6],dtype = float)
 
         # ROSData[0:3]###############################3
         # # pandas =>
@@ -487,17 +483,13 @@ class Cell:
         nucleusHitBool = 0
         apopOccurs = 0
 
-        # For Deep Space, ROSData carries an "which generation"
-        # column (same as cellRad's radData) since ROS is
-        # generated continuously, strip it back off and keep only this generation's 
-        # events before handing a fixed width array to pandas below.
         if radType == "Deep Space":
-            ROSData_all = ROSData
-            ROSData = np.zeros([1,6],dtype = float)
-            for ROSEvent in ROSData_all:
-                eventGen = int(ROSEvent[6])
-                if eventGen == g:
-                    ROSData = np.vstack([ROSData,ROSEvent[0:6]])
+            ROSData_all = np.asarray(ROSData)
+            genMask = ROSData_all[:,6].astype(int) == g
+            if genMask.any():
+                ROSData = ROSData_all[genMask][:,0:6]
+            else:
+                ROSData = np.zeros([1,6],dtype = float)
 
         # ROSData[0:3]###############################3
         # # pandas =>
