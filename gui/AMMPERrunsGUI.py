@@ -18,6 +18,7 @@ import random
 # from AMMPERBulk_aB import finish
 
 from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtGui import QIcon, QFontDatabase
 
 # AMMPER modules
 import numpy as np
@@ -235,7 +236,7 @@ class Widget(QWidget):
             choiceA = input("Hello, and welcome to the AMMPER Runs CLI. Features may be limited. Press 'a' for regular testing, 'b' for gamma, or 'c' to quit.")
             if choiceA == 'a':
                 print("Regular testing chosen.")
-                subprocess.call(["python", "AMMPERruns_aB.py"]) # Launch CLI
+                subprocess.call([sys.executable, "-m", "ammper.AMMPERruns_aB"]) # Launch CLI
                 print("Please enter the following prompts to finish setting up your simulation.")
                 self.simNum = int(input("Enter the amount of runs you would like to complete today."))
                 print("Runs: ", self.simNum)
@@ -268,7 +269,8 @@ class Widget(QWidget):
                 elif ROSSelect == 'b':
                     labelROS = 'Complex'
                 self.instruct = "python .\AMMPERBulkGAMMAFINAL.py d " + cellSelect + ' ' + ROSSelect + ' ' + radSelect + ' ' + labelCell + '_' + radSelect
-                subprocess.call(["python", "AMMPERrunsGAMMAFINALmodule_aB.py"]) # Launch CLI
+
+                subprocess.call([sys.executable, "-m", "ammper.AMMPERruns_GAMMAFINAL"]) # Launch CLI
             elif choiceA == 'c':
                 i = 0
             else:
@@ -281,6 +283,8 @@ class Widget(QWidget):
         if self.display:
             self.stackedWidget.setCurrentIndex(2)
             self.progressBar.setValue(0)
+
+            QApplication.processEvents()
             self.simSetup()
         else: 
             self.stackedWidget.setCurrentIndex(2)
@@ -474,8 +478,8 @@ class Widget(QWidget):
         if self.doSim:
             self.simDescription = "Cell Type: " + self.cellType + "\nRad Type: " + self.radType + "\nSim Dim: " +  str(self.N) + "microns\nNumGen: " + str(self.gen) + "ROS model: " + str(self.ROSType)
 
-        # results folder name with the time that the simulation completed
-            resultsName = time.strftime('%m-%d-%y_%H-%M') + "/"
+        # results folder name with the time that the simulation completed.
+            resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
             # determine path that all results will be written to
             resultsFolder = "Results/"
             #currPath = os.path.dirname("AMMPER")
@@ -528,6 +532,10 @@ class Widget(QWidget):
                 self.label_2.setText("Generation " + str(g))
                 current_value = self.progress_bar.value()
                 self.progressBar.setValue(current_value + 5)
+                # Without this, the label/progress bar updates above just
+                # sit queued - Qt only paints them once this whole
+                # (blocking) method returns.
+                QApplication.processEvents()
 
             self.fact_list = ["AMMPER incorporates data from BioSentinel, the first biological CubeSat to fly beyond Low Earth Orbit (LEO).",
                             "AMMPER models after yeast (Saccharomyces cerevisiae) cells because they are eukaryotic, therefore similar in biology to human cells.", 
@@ -623,13 +631,14 @@ class Widget(QWidget):
                             if self.ROSType == "Basic ROS":
                                 ROSData_new = genROSOld(radData_trans, cells)
                             
-                            # creates a column indicating what generation the ROS and radData occured at
+                            # creates a column indicating what generation the radData occured at
                             genArr = np.ones([len(radData_trans),1],dtype=int)*g
                             # compile radData with the generation indicator
                             radData_trans = np.hstack((radData_trans,genArr))
                             # compile radData from this traversal with all radData
                             radData = np.vstack([radData,radData_trans])
-                            
+
+                            genArr = np.ones([len(ROSData_new),1],dtype=int)*g
                             # compile ROSData with the generation indicator
                             ROSData_new = np.hstack((ROSData_new,genArr))
                             #compile ROSData with all ROSData
@@ -727,9 +736,9 @@ class Widget(QWidget):
                 for c in cells:
                     health = c.health
                     if self.cellType == "wt":
-                        ROSCell = c.cellROS(g,self.radGen,ROSData)
+                        ROSCell = c.cellROS(g,self.radGen,ROSData,self.radType)
                     elif self.cellType == "rad51":
-                        ROSCell = c.cellROS_rad51(g,self.radGen,ROSData)
+                        ROSCell = c.cellROS_rad51(g,self.radGen,ROSData,self.radType)
                     newHealth = ROSCell.health
                     if health != newHealth:
                         ROSCellPos = ROSCell.position
@@ -927,6 +936,18 @@ class Widget(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
+    # The .ui-generated forms reference "IBM Plex Sans" (an open-source
+    # replacement for "Franklin Gothic Medium/Book", which isn't installed
+
+    _fonts_dir = _os.path.join(P.ROOT, "gui", "fonts", "IBMPlexSans")
+    for _font_file in ("IBMPlexSans-Regular.ttf", "IBMPlexSans-Medium.ttf",
+                       "IBMPlexSans-Italic.ttf", "IBMPlexSans-MediumItalic.ttf"):
+        QFontDatabase.addApplicationFont(_os.path.join(_fonts_dir, _font_file))
+        
+    app.setApplicationName("AMMPER")
+    app.setApplicationDisplayName("AMMPER")
+    app.setOrganizationName("NASA AMMPER")
+    app.setWindowIcon(QIcon(_os.path.join(P.ROOT, "images", "ammperbitlogo.ico")))
     widget = Widget()
     widget.show()
     sys.exit(app.exec())

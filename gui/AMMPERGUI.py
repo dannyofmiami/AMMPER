@@ -12,13 +12,12 @@ _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)
 import ammper_paths as P  # noqa: E402  (resolves data/ and results/ paths)
 # GUI modules
 import sys
-from time import sleep
 import subprocess
 import random
 
-from PyQt5.QtWidgets import QApplication, QWidget
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QWidget, QShortcut, QPushButton, QFileDialog
+from PyQt5.QtGui import QPixmap, QIcon, QFontDatabase, QKeySequence
+from PyQt5.QtCore import Qt, QRect
 from vgui_form import Ui_Widget # AMMPER interface 
 from gui.movieMaker import movie_maker as mm
 
@@ -47,6 +46,47 @@ class Widget(QWidget):
         super().__init__(parent)
         self.ui = Ui_Widget()
         self.ui.setupUi(self)
+
+        # Accessibility: enable zoom to allow users to scale up or down UI
+        self._zoom_level = 1.0
+        self._zoom_baseline = self._captureZoomBaseline()
+        self._shortcut_zoom_in = QShortcut(QKeySequence("Ctrl+="), self, self.zoomIn)
+        self._shortcut_zoom_in_alt = QShortcut(QKeySequence(QKeySequence.ZoomIn), self, self.zoomIn)
+        self._shortcut_zoom_out = QShortcut(QKeySequence(QKeySequence.ZoomOut), self, self.zoomOut)
+        self._shortcut_zoom_reset = QShortcut(QKeySequence("Ctrl+0"), self, self.zoomReset)
+
+        # Accessibility: buttons had no hover/pressed/keyboard-focus
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: #f0f0f0;
+                color: #1a1a2e;
+                border: 1px solid #8a8ea3;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #dfe1f5;
+                color: #1a1a2e;
+                border: 1px solid #50526b;
+            }
+            QPushButton:pressed {
+                background-color: #a0a4e3;
+                color: #1a1a2e;
+            }
+            QPushButton:disabled {
+                background-color: #f0f0f0;
+                color: #9a9a9a;
+                border: 1px solid #cfcfcf;
+            }
+            QPushButton:focus {
+                border: 2px solid #50526b;
+            }
+            QRadioButton:focus, QCheckBox:focus {
+                outline: 2px solid #50526b;
+            }
+        """)
+
+        for _btn in self.findChildren(QPushButton):
+            _btn.setAttribute(Qt.WA_Hover, True)
 
         self.ui.stackedWidget.setCurrentIndex(0)
         self.ui.label_33.setStyleSheet("color: white;")
@@ -80,11 +120,12 @@ class Widget(QWidget):
         self.label_6 = self.ui.label_6
         self.label_7 = self.ui.label_7
 
-        self.ui.checkBox.setEnabled(False)
+        self.checkBox = self.ui.checkBox
         self.checkBox_2 = self.ui.checkBox_2
         self.checkBox_2.setChecked(True)
 
-        # self.path = self.plainTextEdit.toPlainText()
+        self.customExportPathValid = False
+        self.path = ""
 
         self.pushButton_4 = self.ui.pushButton_4
 
@@ -92,12 +133,14 @@ class Widget(QWidget):
         self.ui.pushButton.clicked.connect(self.pushButton_clicked) # Launch GUI
         self.ui.pushButton_2.clicked.connect(self.pushButton_2_clicked) # Launch CLI
         self.ui.pushButton_3.clicked.connect(self.pushButton_3_clicked) # Credits
-        self.ui.pushButton_4.clicked.connect(self.pushButton_4_clicked) # Set Up Simulation
-        self.ui.pushButton_4.clicked.connect(self.simSetup) # Run Simulation
+
+        self.ui.pushButton_4.clicked.connect(self.pushButton_4_clicked) # Set Up + Run Simulation
         self.ui.pushButton_5.clicked.connect(self.pushButton_5_clicked) # Exit
         self.ui.pushButton_6.clicked.connect(self.goBack) # Backwards Credits
         self.ui.pushButton_7.clicked.connect(self.visualization) # Visualization
         self.ui.pushButton_8.clicked.connect(self.pushButton_5_clicked) # Exit
+        self.ui.pushButton_9.clicked.connect(self.newSimulation) # New Simulation, from results page
+        self.ui.pushButton_10.clicked.connect(self.newSimulation) # New Simulation, from visualization page
 
         # Connecting radio buttons.
         self.radioButton.toggled.connect(self.onRadioButtonClicked)
@@ -113,6 +156,8 @@ class Widget(QWidget):
 
         self.ui.checkBox.stateChanged.connect(self.fileExport)
         self.ui.checkBox_2.stateChanged.connect(self.fileExport)
+
+        self.ui.pushButton_11.clicked.connect(self.browseForExportPath)
 
         self.horizontalSlider.valueChanged.connect(self.Slider)
         self.slider = self.horizontalSlider.value()
@@ -134,12 +179,60 @@ class Widget(QWidget):
         self.pushButton_4.setEnabled(False)
         self.dirRadCells = []
 
+    def _captureZoomBaseline(self):
+        """Zoom feature to resize GUI
+        """
+        baseline = {"window": self.geometry()}
+        for w in self.findChildren(QWidget):
+            entry = {"geometry": w.geometry()}
+            font = w.font()
+            if font.pointSize() > 0:
+                entry["pointSize"] = font.pointSize()
+            baseline[w] = entry
+        return baseline
+
+    def _applyZoom(self):
+        level = self._zoom_level
+        win_geo = self._zoom_baseline["window"]
+        self.setGeometry(QRect(
+            win_geo.x(), win_geo.y(),
+            int(win_geo.width() * level), int(win_geo.height() * level),
+        ))
+        for w, entry in self._zoom_baseline.items():
+            if w == "window":
+                continue
+            geo = entry["geometry"]
+            w.setGeometry(QRect(
+                int(geo.x() * level), int(geo.y() * level),
+                int(geo.width() * level), int(geo.height() * level),
+            ))
+            if "pointSize" in entry:
+                font = w.font()
+                # Floor of 6pt: below that, IBM Plex Sans (like most
+                # fonts) stops being legible regardless of zoom intent.
+                font.setPointSize(max(6, round(entry["pointSize"] * level)))
+                w.setFont(font)
+
+    def zoomIn(self):
+        self._zoom_level = min(3.0, round(self._zoom_level + 0.1, 2))
+        self._applyZoom()
+
+    def zoomOut(self):
+        self._zoom_level = max(0.5, round(self._zoom_level - 0.1, 2))
+        self._applyZoom()
+
+    def zoomReset(self):
+        self._zoom_level = 1.0
+        self._applyZoom()
+
     def pushButton_clicked(self):
         self.stackedWidget.setCurrentIndex(1)
 
     def pushButton_2_clicked(self):
+        self.close() #corrected for closing GUI gracefully.
+        QApplication.processEvents()
+        subprocess.call([sys.executable, "-m", "ammper.AMMPERCLI"]) # Launch CLI
         QApplication.exit()
-        subprocess.call(["python", "AMMPERCLI.py"]) # Launch CLI
 
     def pushButton_3_clicked(self):
         self.stackedWidget.setCurrentIndex(4)
@@ -148,6 +241,8 @@ class Widget(QWidget):
         if self.display:
             self.stackedWidget.setCurrentIndex(2)
             self.progressBar.setValue(0)
+            # fix for progress screen
+            QApplication.processEvents()
             self.simSetup()
         else: 
             self.stackedWidget.setCurrentIndex(2)
@@ -158,6 +253,11 @@ class Widget(QWidget):
 
     def goBack(self):
         self.stackedWidget.setCurrentIndex(0)
+
+    def newSimulation(self):
+        # adding newSimulation to rerun a new sim in GUI 
+        self.progressBar.setValue(0)
+        self.stackedWidget.setCurrentIndex(1)
 
     def onRadioButtonClicked(self):
         if self.radioButton.isChecked():
@@ -251,26 +351,50 @@ class Widget(QWidget):
             self.ROSType = "Complex ROS"
         self.pushButton_4.setEnabled(True)
 
+    def browseForExportPath(self):
+        # A native picker instead of specifying filepath to save results to. 
+        start_dir = self.path or os.path.expanduser("~")
+        chosen = QFileDialog.getExistingDirectory(
+            self, "Select a folder to export results to", start_dir
+        )
+        if chosen:
+            self.path = chosen
+            self.plainTextEdit.setPlainText(chosen)
+            self.checkBox.setChecked(True)
+            self.fileExport()
+
     def fileExport(self):
         if self.checkBox.isChecked():
-            self.path = self.plainTextEdit.toPlainText()
             self.fileWritten = True
-            try:
-                with open(self.path, 'r'):
-                    self.label_7.setText("Valid path.")
-            except:
-                self.label_7.setText("Specific exportation unavailable in pilot testing. Thank you for your patience.")
+            if not self.path:
+                self.customExportPathValid = False
+                self.label_7.setText("Click Browse... to choose a folder.")
                 self.label_7.setStyleSheet("color: red;")
-        if self.checkBox_2.isChecked():
-            self.display = False
+            else:
+
+                if os.path.isdir(self.path) and os.access(self.path, os.W_OK):
+                    self.customExportPathValid = True
+                    self.label_7.setText("Valid folder.")
+                    self.label_7.setStyleSheet("color: green;")
+                else:
+                    self.customExportPathValid = False
+                    self.label_7.setText("Folder no longer available - using default Results/ folder instead.")
+                    self.label_7.setStyleSheet("color: red;")
+        else:
+            self.customExportPathValid = False
+            self.label_7.setText("")
+        self.display = self.checkBox_2.isChecked()
 
     def simSetup(self):
         self.simDescription = "Cell Type: " + self.cellType + "\nRad Type: " + self.radType + "\nSim Dim: " +  str(self.N) + "microns\nNumGen: " + str(self.gen) + "ROS model: " + str(self.ROSType)
 
-    # results folder name with the time that the simulation completed
-        self.resultsName = time.strftime('%m-%d-%y_%H-%M') + "/"
+        self.resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
         # determine path that all results will be written to
-        resultsFolder = r"Results/"
+        useCustomPath = self.checkBox.isChecked() and self.path and self.customExportPathValid
+        if useCustomPath:
+            resultsFolder = self.path.rstrip("/\\") + "/"
+        else:
+            resultsFolder = r"Results/"
         #currPath = os.path.dirname("AMMPER")
         allResults_path = os.path.join(resultsFolder)
         self.currResult_path = os.path.join(allResults_path,self.resultsName)
@@ -328,12 +452,10 @@ class Widget(QWidget):
         current_value = 0
         for g in range(1,self.gen + 1):
             self.label_2.setText("Generation " + str(g))
-            current_value = self.progressBar.value() 
+            current_value = self.progressBar.value()
             self.progressBar.setValue(current_value + 5)
-            sleep(1)
-            pathX = "/Results/" + self.resultsName + "/Plots/fig" + str(g) + "1.png"
-            pixmapgX = QPixmap(pathX)
-            self.ui.label_5.setPixmap(pixmapgX)
+            QApplication.processEvents()
+
 
             if self.radType == "Gamma":
                 if g == self.radGen:
@@ -421,15 +543,17 @@ class Widget(QWidget):
                             if self.ROSType == "Basic ROS":
                                 ROSData_new = genROSOld(radData_trans, cells)
 
-                            # creates a column indicating what generation the ROS and radData occured at
+                            # creates a column indicating what generation the radData occured at
                             genArr = np.ones([len(radData_trans),1],dtype=int)*g
                             # compile radData with the generation indicator
                             radData_trans = np.hstack((radData_trans,genArr))
                             # compile radData from this traversal with all radData
                             self.radData = np.vstack([self.radData,radData_trans])
 
-                            # compile ROSData with the generation indicator
-                            ROSData_new = np.hstack((ROSData_new,genArr))
+                            # fix for numpy row-count mismatch in hstack tp
+                            # ROSData_new's actual row count.
+                            genArr_ros = np.ones([len(ROSData_new),1],dtype=int)*g
+                            ROSData_new = np.hstack((ROSData_new,genArr_ros))
                             #compile ROSData with all ROSData
                             self.ROSData = np.vstack([self.ROSData,ROSData_new])
 
@@ -525,9 +649,9 @@ class Widget(QWidget):
                 for c in cells:
                     health = c.health
                     if self.cellType == "wt":
-                        ROSCell = c.cellROS(g,self.radGen,self.ROSData)
+                        ROSCell = c.cellROS(g,self.radGen,self.ROSData,self.radType)
                     elif self.cellType == "rad51":
-                        ROSCell = c.cellROS_rad51(g,self.radGen,self.ROSData)
+                        ROSCell = c.cellROS_rad51(g,self.radGen,self.ROSData,self.radType)
                     newHealth = ROSCell.health
                     if health != newHealth:
                         ROSCellPos = ROSCell.position
@@ -635,13 +759,14 @@ class Widget(QWidget):
         ######################################## Random decay, lifetime ROS for complex model ################################
             if self.ROSType == "Complex ROS":
                 if g > self.radGen:
-                    ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
+                    ROSDatak  , ROSData_decayed = train_test_split(self.ROSData, train_size = 0.5)
                     # half life 1 gen = .5, half life 2 gen = .707, half life 3 gen = .7937, 20 min half life = .125
-                    ROSData = ROSDatak
+                    self.ROSData = ROSDatak
 
         
-        self.label_2.setText("Complete. Stand by.")
+        self.label_2.setText("Complete. Rendering plots - this can take a few seconds.")
         self.progressBar.setValue(current_value + 5)
+        QApplication.processEvents()
 
         # for each simulation type, write the data to a text file titled by the radType
         # for each simulation type, plot the data as 1 figure/generation
@@ -689,69 +814,66 @@ class Widget(QWidget):
         self.label_2.setText("Plots and data written.")
         self.ui.label.setText("Time elapsed: \n{:.2f}s".format(time.time() - start_time))
 
-        sleep(1)
-
         #gen1
-        self.path1 = "Results/" + self.resultsName + "/Plots/fig1.png"
+        self.path1 = plots_path + "fig1.png"
         self.pixmapg1 = QPixmap(self.path1)
 
         #gen2
-        self.path2 = "Results/" + self.resultsName + "/Plots/fig2.png"
+        self.path2 = plots_path + "fig2.png"
         self.pixmapg2 = QPixmap(self.path2)
 
         #gen3
-        self.path3 = "Results/" + self.resultsName + "/Plots/fig3.png"
+        self.path3 = plots_path + "fig3.png"
         self.pixmapg3 = QPixmap(self.path3)
         
         #gen4
-        self.path4 = "Results/" + self.resultsName + "/Plots/fig4.png"
+        self.path4 = plots_path + "fig4.png"
         self.pixmapg4 = QPixmap(self.path4)
 
         #gen5
-        self.path5 = "Results/" + self.resultsName + "/Plots/fig5.png"
+        self.path5 = plots_path + "fig5.png"
         self.pixmapg5 = QPixmap(self.path5)
 
         #gen6
-        self.path6 = "Results/" + self.resultsName + "/Plots/fig6.png"
+        self.path6 = plots_path + "fig6.png"
         self.pixmapg6 = QPixmap(self.path6)
 
         #gen7
-        self.path7 = "Results/" + self.resultsName + "/Plots/fig7.png"
+        self.path7 = plots_path + "fig7.png"
         self.pixmapg7 = QPixmap(self.path7)
 
         #gen8
-        self.path8 = "Results/" + self.resultsName + "/Plots/fig8.png"
+        self.path8 = plots_path + "fig8.png"
         self.pixmapg8 = QPixmap(self.path8)
 
         #gen9
-        self.path9 = "Results/" + self.resultsName + "/Plots/fig9.png"
+        self.path9 = plots_path + "fig9.png"
         self.pixmapg9 = QPixmap(self.path9)
 
         #gen10
-        self.path10 = "Results/" + self.resultsName + "/Plots/fig10.png"
+        self.path10 = plots_path + "fig10.png"
         self.pixmapg10 = QPixmap(self.path10)
         
         #gen11
-        self.path11 = "Results/" + self.resultsName + "/Plots/fig11.png"
+        self.path11 = plots_path + "fig11.png"
         self.pixmapg11 = QPixmap(self.path11)
 
         #gen12
-        self.path12 = "Results/" + self.resultsName + "/Plots/fig12.png"
+        self.path12 = plots_path + "fig12.png"
         self.pixmapg12 = QPixmap(self.path12)
 
         #gen13
-        self.path13 = "Results/" + self.resultsName + "/Plots/fig13.png"
+        self.path13 = plots_path + "fig13.png"
         self.pixmapg13 = QPixmap(self.path13)
 
         #gen14
-        self.path14 = "Results/" + self.resultsName + "/Plots/fig14.png"
+        self.path14 = plots_path + "fig14.png"
         self.pixmapg14 = QPixmap(self.path14)
 
         #gen15
-        self.path15 = "Results/" + self.resultsName + "/Plots/fig15.png"
+        self.path15 = plots_path + "fig15.png"
         self.pixmapg15 = QPixmap(self.path15)
 
-        self.stackedWidget.setCurrentIndex(3)
 
         self.ui.label_4.setPixmap(self.pixmapg1)
         self.ui.label_19.setPixmap(self.pixmapg5)
@@ -763,25 +885,50 @@ class Widget(QWidget):
         self.ui.label_4.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.ui.label_4.setScaledContents(True)
         self.ui.label_19.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.ui.label_19.setScaledContents(True) 
+        self.ui.label_19.setScaledContents(True)
         self.ui.label_12.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.ui.label_12.setScaledContents(True) 
+        self.ui.label_12.setScaledContents(True)
         self.ui.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.ui.label.setScaledContents(True) 
+        self.ui.label.setScaledContents(True)
         self.ui.label_5.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.ui.label_5.setScaledContents(True) 
+        self.ui.label_5.setScaledContents(True)
         self.ui.label_13.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.ui.label_13.setScaledContents(True)
+
+        self.stackedWidget.setCurrentIndex(3)
+
+    def _visualizationFilename(self):
+        # Fixing file name for mp4 gen sim
+        def _clean(value):
+            return str(value).replace(" ", "").replace("/", "-")
+
+        # self.resultsName itself now carries an "ammper_" prefix
+        timestamp = self.resultsName.rstrip("/")
+        if timestamp.startswith("ammper_"):
+            timestamp = timestamp[len("ammper_"):]
+
+        parts = [
+            "ammper_sim",
+            timestamp,
+            _clean(self.radType),
+            f"{self.Gy:g}Gy",
+            self.cellType,
+            _clean(self.ROSType),
+            f"N{self.N}",
+            f"gen{self.gen}",
+        ]
+        return "_".join(parts) + ".mp4"
 
     def visualization(self):
         self.stackedWidget.setCurrentIndex(5)
         self.ui.label_35.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.ui.label_35.setScaledContents(True)
+        video_filename = self._visualizationFilename()
         # Fix: Pass empty string to use already-correct paths
-        mm("", self.path1, self.path2, self.path3, self.path4, self.path5, self.path6, self.path7, self.path8, self.path9, self.path10, self.path11, self.path12, self.path13, self.path14, self.path15)
-        # Open in the OS default video player. "open" is macOS-only; dispatch
-        # per platform so this works on Windows and Linux too.
-        video_path = _os.path.join(P.ROOT, "visualization.mp4")
+        mm("", self.path1, self.path2, self.path3, self.path4, self.path5, self.path6, self.path7, self.path8, self.path9, self.path10, self.path11, self.path12, self.path13, self.path14, self.path15, output_filename=video_filename)
+        # Open in the OS default video player. "open" is macOS-only;
+        # solution per platform so this works on Windows and Linux too.
+        video_path = _os.path.join(P.ROOT, video_filename)
         if sys.platform == "darwin":
             subprocess.call(["open", video_path])
         elif sys.platform == "win32":
@@ -794,7 +941,29 @@ class Widget(QWidget):
 # Widget initialization. 
 
 if __name__ == "__main__":
+    if sys.platform == "darwin":
+        try:
+            from Foundation import NSBundle
+            bundle = NSBundle.mainBundle()
+            if bundle is not None:
+                info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+                if info is not None:
+                    info["CFBundleName"] = "AMMPER"
+        except Exception:
+            pass
+
     app = QApplication([])
+    # The .ui-generated forms reference "IBM Plex Sans" (an open-source
+    # replacement for "Franklin Gothic Medium/Book", which isn't installed
+    _fonts_dir = _os.path.join(P.ROOT, "gui", "fonts", "IBMPlexSans")
+    for _font_file in ("IBMPlexSans-Regular.ttf", "IBMPlexSans-Medium.ttf",
+                       "IBMPlexSans-Italic.ttf", "IBMPlexSans-MediumItalic.ttf"):
+        QFontDatabase.addApplicationFont(_os.path.join(_fonts_dir, _font_file))
+
+    app.setApplicationName("AMMPER")
+    app.setApplicationDisplayName("AMMPER")
+    app.setOrganizationName("NASA AMMPER")
+    app.setWindowIcon(QIcon(_os.path.join(P.ROOT, "images", "ammperbitlogo.ico")))
     widget = Widget()
     widget.show()
     sys.exit(app.exec())
