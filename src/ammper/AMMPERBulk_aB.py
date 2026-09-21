@@ -113,8 +113,8 @@ if ROSType == "b":
 # description of simulation to be written to file
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
 
-# results folder name with the time that the simulation completed
-resultsName = time.strftime('%m-%d-%y_%H-%M-%S') + "/"
+# results folder name with the time that the simulation completed.
+resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
 # determine path that all results will be written to
 resultsFolder = P.bulk_aB() + os.sep + sys.argv[5] + "/"
 currPath = os.path.dirname("AMMPER")
