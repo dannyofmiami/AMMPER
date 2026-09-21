@@ -31,6 +31,8 @@ from ammper import paths as P  # resolves data/ and results/ paths
 
 """
 
+from rich.prompt import Prompt, FloatPrompt
+
 import numpy as np
 import random as rand
 import uuid as uuid
@@ -51,9 +53,15 @@ from sklearn.model_selection import train_test_split
 # pip install numpy pandas scikit-learn
 start_time = time.time()
 
-radType = input("Please enter what simulation type you would like to run:\n\ta)150MeV Proton\n\tb)NSRL GCRSim\n\tc)Deep Space\n\td)Gamma\n")
+radType = Prompt.ask(
+    "Please enter what simulation type you would like to run:\n\ta)150MeV Proton\n\tb)NSRL GCRSim\n\tc)Deep Space\n\td)Gamma",
+    choices=["a", "b", "c", "d"], show_choices=False,
+)
 if radType == "a":
-    radAmount = input("Please enter radiation dose. Options are: 0, 2.5, 5, 10, 20, 30 Gy.\n")
+    radAmount = Prompt.ask(
+        "Please enter radiation dose. Options are: 0, 2.5, 5, 10, 20, 30 Gy.",
+        choices=["0", "2.5", "5", "10", "20", "30"], show_choices=False,
+    )
     Gy = float(radAmount)
     radType = "150 MeV Proton"
     gen = 15
@@ -83,7 +91,10 @@ elif radType == 'd':
     N = 64 # real 64 ? 
 
 
-cellType = input("Please enter cell type:\n\ta)Wild Type\n\tb)rad51\n")
+cellType = Prompt.ask(
+    "Please enter cell type:\n\ta)Wild Type\n\tb)rad51",
+    choices=["a", "b"], show_choices=False,
+)
 if cellType == "a":
     cellType = "wt"
 elif cellType == "b":
@@ -91,7 +102,10 @@ elif cellType == "b":
 
 # ROS model old and new, ROS Old computes eternal and static ROS free radicals, complex ROS models diffusion and time
 # mechanics.
-ROSType = input("Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS\n")
+ROSType = Prompt.ask(
+    "Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS",
+    choices=["a", "b"], show_choices=False,
+)
 if ROSType == "a":
     ROSType = "Basic ROS"
 if ROSType == "b":
@@ -100,8 +114,8 @@ if ROSType == "b":
 # description of simulation to be written to file
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
 
-# results folder name with the time that the simulation completed
-resultsName = time.strftime('%m-%d-%y_%H-%M-%S') + "/"
+# results folder name with the time that the simulation completed.
+resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
 # determine path that all results will be written to
 resultsFolder = "Results/"
 currPath = os.path.dirname("AMMPER")
@@ -156,7 +170,7 @@ for g in range(1,gen+1):
     if radType == "Gamma":
         if g == radGen:
             
-            dose = input("Please enter radiation dose. \n")
+            dose = FloatPrompt.ask("Please enter radiation dose")
             # radData = np.zeros([1, 6], dtype=float)
             # Dose input, radGenE stop point for gamma radiation.
             radData = GammaRadGen(dose)
