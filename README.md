@@ -15,7 +15,49 @@ analysis code, and scripts used to reproduce manuscript figures. AMMPER is
 research software and is not intended for clinical or operational radiation
 risk decisions.
 
-## Layout
+
+## Requirements
+
+> **Before you start: you need Python 3.9, 3.10, or 3.11 installed.**
+> [python.org/downloads](https://www.python.org/downloads/).
+>
+> Check what you have first:
+> ```bash
+> python3 --version        # macOS/Linux
+> py --version              # Windows (the `py` launcher)
+> py -0                     # Windows: list every Python version installed
+> ```
+> On Windows with multiple Python versions installed, use `py -3.11` in
+> place of `python3` in the commands below to target a specific one, e.g.
+> `py -3.11 -m venv venv`.
+
+## Quick start
+
+AMMPER is a pip-installable package. From a clone of this repository:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install --upgrade pip setuptools wheel 
+pip install -e .
+```
+
+That installs the `ammper` command:
+
+```bash
+ammper setup        # checks dependencies and data are all present
+ammper quickstart    # runs a short, non-interactive tutorial simulation
+ammper run           # full  simulation with prompts for radiation type, dose, etc.
+ammper gui            # launches the PyQt5 desktop GUI
+ammper --help         # everything above, plus options
+ammper                # no arguments: a guided menu picking one of the above
+```
+
+`ammper quickstart` writes its output under `results/bulk_aB/quickstart/` and
+prints the exact path when it finishes. Confirm your results there before running a full simulation. 
+
+
+## Project Layout
 
 ```
 src/                        simulation
@@ -76,45 +118,6 @@ figures/                    generated output (git-ignored, created on demand)
 ammper_paths.py             path resolution — import this, don't hardcode paths
 ```
 
-## Requirements
-
-**Python 3.9–3.11.** `pyproject.toml` enforces this (`requires-python =
-">=3.9,<3.12"`), so `pip install` will refuse to proceed on Python 3.12+
-instead of failing partway through. This isn't a compatibility choice made
-for its own sake — it's the intersection of what AMMPER's exact pinned
-dependency versions (`numpy`, `scipy`, `pandas`, `matplotlib`,
-`scikit-learn`) actually ship prebuilt wheels for; none of them publish a
-3.12 or 3.13 wheel at these pinned versions, on any platform, which would
-otherwise force a slow (and often failing, for anyone without a Fortran/BLAS
-toolchain) source build. CI (`.github/workflows/ci.yml`) tests 3.9 and 3.11
-on Linux, Windows, and macOS.
-
-## Quick start
-
-AMMPER is a pip-installable package. From a clone of this repository:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install --upgrade pip       # editable installs need pip >= 21.3; many
-                                 # systems still ship an older default pip
-pip install -e .
-```
-
-That installs the `ammper` command:
-
-```bash
-ammper setup        # checks dependencies and data are all present
-ammper quickstart    # runs a short, non-interactive tutorial simulation
-ammper run           # full  simulation with prompts for radiation type, dose, etc.
-ammper gui            # launches the PyQt5 desktop GUI
-ammper --help         # everything above, plus options
-ammper                # no arguments: a guided menu picking one of the above
-```
-
-`ammper quickstart` writes its output under `results/bulk_aB/quickstart/` and
-prints the exact path when it finishes. Confirm your results there before running a full simulation. 
-
 ## Running it directly (scripts and figures)
 
 For the underlying scripts and the figure/analysis pipeline (not needed for
@@ -159,9 +162,5 @@ out = P.figures("my_panel.png")   # creates figures/ if needed
 ```
 
 (Code inside `src/ammper/` itself should use `from ammper import paths as P`
-instead — see `CONTRIBUTING.md` — since `ammper_paths` is a backward-compatible
+instead. See `CONTRIBUTING.md`. Since `ammper_paths` is a backward-compatible
 shim over that module for scripts outside the installed package.)
-
-<!-- The old-to-new mapping is documented at the top of `ammper_paths.py`. Several
-Windows absolute paths (`C:\Users\danie\...`) remain in the older scripts
--->
