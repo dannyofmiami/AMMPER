@@ -66,8 +66,8 @@ if radType == "a":
     radGen = 2
     N = 64
     if Gy == 0:
-        radData = 0
-        ROSData = 0
+        radData = np.zeros([1,6],dtype = float)
+        ROSData = np.zeros([1,6],dtype = float)
 
 elif radType == "b":
     radType = "GCRSim"
@@ -485,26 +485,25 @@ if radType == "150 MeV Proton":
     datName = str(radAmount)+'Gy'
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ',')
-    # if ROSData != 0: for 0 Gy
-    # cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
+    cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
 
 elif radType == "Deep Space":
     datName = 'deepSpace'
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ',')
-    #cellPlot_deepSpace(data,gen,radData,ROSData,N,plots_path)
-    
+    cellPlot_deepSpace(data,gen,radData,ROSData,N,plots_path)
+
 elif radType == "GCRSim":
     datName = 'GCRSim'
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ",")
-    #cellPlot(data,gen,radData,ROSData,radGen,N,plots_path)
+    cellPlot(data,gen,radData,ROSData,radGen,N,plots_path)
 
 elif radType == "Gamma":
     datName = 'Gamma'
     dat_path = currResult_path + datName + ".txt"
     np.savetxt(dat_path,data,delimiter = ',')
-    #cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
+    cellPlot(data, gen, radData,ROSData,radGen,N,plots_path)
 
 print("Plots and data written to Results folder.")
 
