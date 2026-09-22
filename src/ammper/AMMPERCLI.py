@@ -66,8 +66,8 @@ if radType == "a":
     radGen = 2
     N = 64
     if Gy == 0:
-        radData = 0
-        ROSData = 0
+        radData = np.zeros([1,6],dtype = float)
+        ROSData = np.zeros([1,6],dtype = float)
 elif radType == "b":
     radType = "GCRSim"
     gen = 15
