@@ -42,7 +42,9 @@ BANNER = r"""
 """
 
 CELL_TYPES = {"wt": "a", "rad51": "b"}
-ROS_TYPES = {"basic": "a", "complex": "b"}
+# "complex" (the diffusion/green-function-propagator ROS model) is left out
+# that never completes at realistic dose levels. Not offered as a choice. WIP in AMMPER 3.0
+ROS_TYPES = {"basic": "a"}
 
 
 def _console():
@@ -124,6 +126,7 @@ def cmd_gui(args):
         console.print(f"[bold red][x] GUI script not found at {gui_script}[/bold red]")
         return 1
 
+    # @TODO Dir: the GUI loads its images from "images/..." and  writes results to "Results/", both relative to the cwd Fix by resolving from P.ROOT (or chdir here).
     console.print("[cyan]Launching AMMPER GUI...[/cyan]")
     old_argv = sys.argv
     sys.argv = [gui_script]

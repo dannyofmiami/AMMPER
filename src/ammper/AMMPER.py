@@ -86,9 +86,19 @@ elif radType == "c":
 elif radType == 'd':
     radType = "Gamma"
     gen = 15
+    # @TODO PARAMETER Mismatch: radGen=2 here, but AMMPERCLI.py/AMMPERGUI.py/
+    # AMMPERrunsGUI.py all use radGen=10 for the identical Gamma config
     radGen = 2
     #radGenE = 10
-    N = 64 # real 64 ? 
+    N = 64 # real 64 ?
+    # GammaRadGen can't generate a 0 Gy field, and the manuscript uses the
+    # 150 MeV Proton 0 Gy run as the gamma control, so 0 is rejected here.
+    while True:
+        Gy = FloatPrompt.ask("Please enter gamma radiation dose in Gy (greater than 0, up to 30)")
+        if 0 < Gy <= 30:
+            break
+        print("Gamma dose must be greater than 0 and at most 30 Gy. For a 0 Gy control, run 150 MeV Proton at 0 Gy.")
+    radAmount = Gy
 
 
 cellType = Prompt.ask(
@@ -100,19 +110,18 @@ if cellType == "a":
 elif cellType == "b":
     cellType = "rad51"
 
-# ROS model old and new, ROS Old computes eternal and static ROS free radicals, complex ROS models diffusion and time
-# mechanics.
+# TODO: AMMPER 3.0 support current WIP
 ROSType = Prompt.ask(
-    "Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS",
-    choices=["a", "b"], show_choices=False,
+    "Please enter ROS Model: \n\ta)Basic ROS",
+    choices=["a"], show_choices=False,
 )
 if ROSType == "a":
     ROSType = "Basic ROS"
-if ROSType == "b":
-    ROSType = "Complex ROS"
 
 # description of simulation to be written to file
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
+if radType in ("150 MeV Proton", "Gamma"):
+    simDescription += "\nDose: " + f"{Gy:g}" + " Gy"
 
 # results folder name with the time that the simulation completed.
 resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
@@ -170,7 +179,7 @@ for g in range(1,gen+1):
     if radType == "Gamma":
         if g == radGen:
             
-            dose = FloatPrompt.ask("Please enter radiation dose")
+            dose = Gy
             # radData = np.zeros([1, 6], dtype=float)
             # Dose input, radGenE stop point for gamma radiation.
             radData = GammaRadGen(dose)
@@ -243,6 +252,7 @@ for g in range(1,gen+1):
                 energyThreshold = 20
                 for track in range(numTrav):
                     # choose a random track out of the 8 available/proton energy
+                    # @TODO TRACK RANGE: never picks Track7 (0-6 only). Full note in src/ammper/AMMPERCLI.py's Deep Space branch.
                     trackNum  = int(rand.uniform(0,7))
                     # generate traversal data for omnidirectional traversals
                     radData_trans = genTraverse_deepSpace(N,protonEnergy,trackNum,energyThreshold)
@@ -281,6 +291,7 @@ for g in range(1,gen+1):
                 # parameter that allows non-damaging energy depositions to be ignored (used to speed up simulation)
                 energyThreshold = 20
                 # choose a random track out of the 8 available/proton energy
+                # @TODO Track Selection: never picks Track7 (0-6 only).
                 trackNum = int(rand.uniform(0,7))
                 # generate traversal data for unidirectional traversals
                 radData_trans = genTraverse_groundTesting(N,protonEnergy,trackNum,energyThreshold,radType)
@@ -288,6 +299,7 @@ for g in range(1,gen+1):
                 radData = np.vstack([radData,radData_trans])
                 
                 #remove placeholder from beginning
+                # @TODO this delete runs inside the loop, dropping 13 real GCRSim events per run.
                 radData = np.delete(radData,(0),axis = 0)
             # generate ROS data from all traversal energy depositions
             #ROSData = genROS(radData,cells)
@@ -472,9 +484,13 @@ for g in range(1,gen+1):
 ######################################## Random decay, lifetime ROS for complex model ################################
     if ROSType == "Complex ROS":
         if g > radGen:
-            ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
             # half life 1 gen = .5, half life 2 gen = .707, half life 3 gen = .7937, 20 min half life = .125
-            ROSData = ROSDatak
+            if len(ROSData) > 1:
+                ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
+                ROSData = ROSDatak
+            elif len(ROSData) == 1 and rand.random() < 0.5:
+                # a single remaining event can't be split 50/50 by count apply the same half-life odds directly instead
+                ROSData = np.zeros([1,6],dtype = float)
 
     
 

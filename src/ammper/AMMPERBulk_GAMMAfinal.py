@@ -106,7 +106,11 @@ ROSType = sys.argv[3]
 if ROSType == "a":
     ROSType = "Basic ROS"
 if ROSType == "b":
-    ROSType = "Complex ROS"
+    # Complex ROS is unfinished WIP code
+    raise ValueError(
+        "ROSType 'b' (Complex ROS) is disabled — it's unfinished and does "
+        "not complete at realistic dose levels. Use 'a' (Basic ROS)."
+    )
 
 
 
@@ -243,6 +247,7 @@ for g in range(1,gen+1):
                 energyThreshold = 20
                 for track in range(numTrav):
                     # choose a random track out of the 8 available/proton energy
+                    # @TODO Track Selection: never picks Track7 (0-6 only).
                     trackNum  = int(rand.uniform(0,7))
                     # generate traversal data for omnidirectional traversals
                     radData_trans = genTraverse_deepSpace(N,protonEnergy,trackNum,energyThreshold)
@@ -281,6 +286,7 @@ for g in range(1,gen+1):
                 # parameter that allows non-damaging energy depositions to be ignored (used to speed up simulation)
                 energyThreshold = 20
                 # choose a random track out of the 8 available/proton energy
+                # @TODO Track Selection: never picks Track7 (0-6 only).
                 trackNum = int(rand.uniform(0,7))
                 # generate traversal data for unidirectional traversals
                 radData_trans = genTraverse_groundTesting(N,protonEnergy,trackNum,energyThreshold,radType)
@@ -288,6 +294,7 @@ for g in range(1,gen+1):
                 radData = np.vstack([radData,radData_trans])
                 
                 #remove placeholder from beginning
+                # @TODO this delete runs inside the loop, dropping 13 real GCRSim events per run.
                 radData = np.delete(radData,(0),axis = 0)
             # generate ROS data from all traversal energy depositions
             #ROSData = genROS(radData,cells)
@@ -472,9 +479,13 @@ for g in range(1,gen+1):
 ######################################## Random decay, lifetime ROS for complex model ################################
     if ROSType == "Complex ROS":
         if g > radGen:
-            ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
             # half life 1 gen = .5, half life 2 gen = .707, half life 3 gen = .7937, 20 min half life = .125
-            ROSData = ROSDatak
+            if len(ROSData) > 1:
+                ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
+                ROSData = ROSDatak
+            elif len(ROSData) == 1 and rand.random() < 0.5:
+                # a single remaining event can't be split 50/50 by count apply the same half-life odds
+                ROSData = np.zeros([1,6],dtype = float)
 
     
 

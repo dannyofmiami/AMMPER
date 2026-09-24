@@ -3,7 +3,7 @@
 """
 Graphical User Interface for AMMPER v2.0
 
-Created by Madeline Marous, in coordination with original code created by Amrita Singh and edited by Daniel Palacios.
+Created by Madeline Marous, in coordination with original code created by Amrita Singh and edited by Daniel Palacios & @dannyofmiami.
 Review README and Credits for more information.
 
 """
@@ -153,6 +153,10 @@ class Widget(QWidget):
 
         self.radioButton_7.toggled.connect(self.onRadioButtonClicked3)
         self.radioButton_8.toggled.connect(self.onRadioButtonClicked3)
+        # Complex ROS is unfinished WIP code (genROS's diffusion model never
+        # completes at realistic dose levels) disabled for now.
+        self.radioButton_8.setEnabled(False)
+        self.radioButton_7.setChecked(True)
 
         self.ui.checkBox.stateChanged.connect(self.fileExport)
         self.ui.checkBox_2.stateChanged.connect(self.fileExport)
@@ -167,9 +171,9 @@ class Widget(QWidget):
         self.radAmount = 0.0
         self.cellType = "" 
         self.radType = ""  
-        self.N = 0 
+        self.N = 0
         self.gen = 0
-        self.ROSType = ""
+        self.ROSType = "Basic ROS"
         self.Gy = float(0)
         self.simDescription = ""
         self.sliderOn = True
@@ -260,6 +264,8 @@ class Widget(QWidget):
         self.stackedWidget.setCurrentIndex(1)
 
     def onRadioButtonClicked(self):
+        # Gamma raises this to 2 (no 0 Gy); every other type allows 0 again.
+        self.horizontalSlider.setMinimum(1)
         if self.radioButton.isChecked():
             self.sliderOn = True
             self.Gy = float(self.radAmount)
@@ -300,11 +306,13 @@ class Widget(QWidget):
             self.ROSData = np.zeros([1,6],dtype = float)
 
         if self.radioButton_4.isChecked():
-            self.sliderOn = False
+            self.sliderOn = True
             self.radType = "Gamma"
-            self.horizontalSlider.setValue(1)
-            self.ui.label_11.setText(str(0))
+
+            # the slider's 0 Gy position is excluded for Gamma.
+            self.horizontalSlider.setMinimum(2)
             self.horizontalSlider.setEnabled(self.sliderOn)
+            self.Slider()
             self.gen = 15
             self.radGen = 10
             self.N = 64
@@ -312,6 +320,7 @@ class Widget(QWidget):
             self.ROSData = np.zeros([1,6],dtype = float)
 
         print(self.radType, self.sliderOn)
+        self._updateLaunchEnabled()
 
     def Slider(self):
         if self.sliderOn:
@@ -332,7 +341,7 @@ class Widget(QWidget):
             if self.radType == "GCRSim":
                 self.radAmount = 0.5
 
-            if self.radType == "Deep Space" or self.radType == "Gamma":
+            if self.radType == "Deep Space":
                 self.radAmount = 0
 
         self.Gy = float(self.radAmount)
@@ -343,13 +352,21 @@ class Widget(QWidget):
             self.cellType = "wt"
         elif self.radioButton_6.isChecked():
             self.cellType = "rad51"
+        self._updateLaunchEnabled()
 
     def onRadioButtonClicked3(self):
         if self.radioButton_7.isChecked():
             self.ROSType = "Basic ROS"
         elif self.radioButton_8.isChecked():
             self.ROSType = "Complex ROS"
-        self.pushButton_4.setEnabled(True)
+        self._updateLaunchEnabled()
+
+    def _updateLaunchEnabled(self):
+        # Launch needs all three choices. Basic ROS is pre-selected, so this
+        # can't depend on a ROS click; getattr covers the pre-selection firing
+        # in __init__ before radType/cellType are initialized.
+        ready = all(getattr(self, name, "") for name in ("radType", "cellType", "ROSType"))
+        self.pushButton_4.setEnabled(ready)
 
     def browseForExportPath(self):
         # A native picker instead of specifying filepath to save results to. 
@@ -387,6 +404,8 @@ class Widget(QWidget):
 
     def simSetup(self):
         self.simDescription = "Cell Type: " + self.cellType + "\nRad Type: " + self.radType + "\nSim Dim: " +  str(self.N) + "microns\nNumGen: " + str(self.gen) + "ROS model: " + str(self.ROSType)
+        if self.radType in ("150 MeV Proton", "Gamma"):
+            self.simDescription += "\nDose: " + f"{self.Gy:g}" + " Gy"
 
         self.resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
         # determine path that all results will be written to
@@ -460,7 +479,7 @@ class Widget(QWidget):
             if self.radType == "Gamma":
                 if g == self.radGen:
 
-                    dose = 1
+                    dose = self.Gy
                     # radData = np.zeros([1, 6], dtype=float)
                     # Dose input, radGenE stop point for gamma radiation.
                     self.radData = GammaRadGen(dose)
@@ -533,6 +552,7 @@ class Widget(QWidget):
                         energyThreshold = 20
                         for track in range(numTrav):
                             # choose a random track out of the 8 available/proton energy
+                            # @TODO TRACK RANGE: never picks Track7 (0-6 only). Full note in src/ammper/AMMPERCLI.py's Deep Space branch.
                             trackNum  = int(rand.uniform(0,7))
                             # generate traversal data for omnidirectional traversals
                             radData_trans = genTraverse_deepSpace(self.N,protonEnergy,trackNum,energyThreshold)
@@ -569,6 +589,7 @@ class Widget(QWidget):
                         # parameter that allows non-damaging energy depositions to be ignored (used to speed up simulation)
                         energyThreshold = 20
                         # choose a random track out of the 8 available/proton energy
+                        # @TODO TRACK RANGE: never picks Track7 (0-6 only). Full note in src/ammper/AMMPERCLI.py's Deep Space branch.
                         trackNum = int(rand.uniform(0,7))
                         # generate traversal data for unidirectional traversals
                         radData_trans = genTraverse_groundTesting(self.N,protonEnergy,trackNum,energyThreshold,self.radType)
@@ -576,6 +597,7 @@ class Widget(QWidget):
                         self.radData = np.vstack([self.radData,radData_trans])
 
                         #remove placeholder from beginning
+                        # @TODO DROPPED EVENTS: this delete runs inside the loop, dropping 13 real GCRSim events per run. Full note in src/ammper/AMMPERCLI.py's GCRSim branch.
                         self.radData = np.delete(self.radData,(0),axis = 0)
                     # generate ROS data from all traversal energy depositions
                     #ROSData = genROS(radData,cells)
@@ -759,9 +781,14 @@ class Widget(QWidget):
         ######################################## Random decay, lifetime ROS for complex model ################################
             if self.ROSType == "Complex ROS":
                 if g > self.radGen:
-                    ROSDatak  , ROSData_decayed = train_test_split(self.ROSData, train_size = 0.5)
                     # half life 1 gen = .5, half life 2 gen = .707, half life 3 gen = .7937, 20 min half life = .125
-                    self.ROSData = ROSDatak
+                    if len(self.ROSData) > 1:
+                        ROSDatak  , ROSData_decayed = train_test_split(self.ROSData, train_size = 0.5)
+                        self.ROSData = ROSDatak
+                    elif len(self.ROSData) == 1 and rand.random() < 0.5:
+                        # a single remaining event can't be split 50/50 by count;
+                        # apply the same half-life odds directly instead
+                        self.ROSData = np.zeros([1,6],dtype = float)
 
         
         self.label_2.setText("Complete. Rendering plots - this can take a few seconds.")

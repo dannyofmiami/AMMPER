@@ -75,6 +75,8 @@ class Widget(QWidget):
         self.dial = self.ui.dial
         self.dial.valueChanged.connect(self.dialChange)
 
+        # @TODO DEPRECATE THIS: this class references 10 widgets that do
+        # not exist anywhere in formgui.py's generated Ui_Widget 
         self.verticalSlider = self.ui.verticalSlider
         
         self.progressBar = self.ui.progressBar
@@ -182,6 +184,10 @@ class Widget(QWidget):
         
         self.radioButton_7.toggled.connect(self.onRadioButtonClicked3)
         self.radioButton_8.toggled.connect(self.onRadioButtonClicked3)
+        # Complex ROS is unfinished WIP code (genROS's diffusion model never
+        # completes at realistic dose levels)
+        self.radioButton_8.setEnabled(False)
+        self.radioButton_7.setChecked(True)
 
         self.checkBox.stateChanged.connect(self.fileExport)
         self.checkBox_2.stateChanged.connect(self.fileExport)
@@ -203,7 +209,7 @@ class Widget(QWidget):
         self.radType = ""  
         self.N = 0 
         self.gen = 0
-        self.ROSType = ""
+        self.ROSType = "Basic ROS"
         self.simAmt = 1
         self.Gy = float(0)
         self.simDescription = ""
@@ -245,7 +251,7 @@ class Widget(QWidget):
                     labelROS = 'WT'
                 elif ROSSelect == 'b':
                     labelROS = 'rad51'
-                ROSSelect = input("Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS\n")
+                ROSSelect = input("Please enter ROS Model: \n\ta)Basic ROS\n")
                 radSelect = input("Please enter radiation dose. Options are: 0, 2.5, 5, 10, 20, 30 (Gy).\n")
                 if ROSSelect == 'a':
                     labelROS = 'Basic'
@@ -262,7 +268,7 @@ class Widget(QWidget):
                     labelCell = 'WT'
                 elif ROSSelect == 'b':
                     labelCell = 'rad51'
-                ROSSelect = input("Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS\n")
+                ROSSelect = input("Please enter ROS Model: \n\ta)Basic ROS\n")
                 radSelect = input("Please enter radiation dose. Options are: 0, 2.5, 5, 10, 20, 30 (Gy).\n")
                 if ROSSelect == 'a':
                     labelROS = 'Basic'
@@ -845,9 +851,14 @@ class Widget(QWidget):
         ######################################## Random decay, lifetime ROS for complex model ################################
             if self.ROSType == "Complex ROS":
                 if g > self.radGen:
-                    ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
                     # half life 1 gen = .5, half life 2 gen = .707, half life 3 gen = .7937, 20 min half life = .125
-                    ROSData = ROSDatak
+                    if len(ROSData) > 1:
+                        ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
+                        ROSData = ROSDatak
+                    elif len(ROSData) == 1 and rand.random() < 0.5:
+                        # a single remaining event can't be split 50/50 by count;
+                        # apply the same half-life odds directly instead
+                        ROSData = np.zeros([1,6],dtype = float)
 
             
             self.label_2.setText("Calculations complete. Plotting and writing data.")

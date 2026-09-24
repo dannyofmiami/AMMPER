@@ -30,7 +30,7 @@ from ammper import paths as P  # resolves data/ and results/ paths
 & @dannyofmiami
 """
 
-from rich.prompt import Prompt
+from rich.prompt import Prompt, FloatPrompt
 
 import numpy as np
 import random as rand
@@ -83,9 +83,21 @@ elif radType == "c":
 elif radType == 'd':
     radType = "Gamma"
     gen = 15
+    # @TODO PARAMETER MISMATCH: this file, gui/AMMPERGUI.py, and
+    # gui/AMMPERrunsGUI.py all use radGen=10 for Gamma; AMMPER.py,
+    # AMMPERBulk_aB.py, and AMMPERBulk_GAMMAfinal.py all use radGen=2 for
+    # the identical nominal config. Needs science-knowledge decision on which value is correct, then reconcile
     radGen = 10
     #radGenE = 10
-    N = 64 # real 64 ? 
+    N = 64 # real 64 ?
+    # GammaRadGen can't generate a 0 Gy field, and the manuscript uses the
+    # 150 MeV Proton 0 Gy run as the gamma control, so 0 is rejected here.
+    while True:
+        Gy = FloatPrompt.ask("Please enter gamma radiation dose in Gy (greater than 0, up to 30)")
+        if 0 < Gy <= 30:
+            break
+        print("Gamma dose must be greater than 0 and at most 30 Gy. For a 0 Gy control, run 150 MeV Proton at 0 Gy.")
+    radAmount = Gy
 
 
 cellType = Prompt.ask(
@@ -97,21 +109,21 @@ if cellType == "a":
 elif cellType == "b":
     cellType = "rad51"
 
-# ROS model old and new, ROS Old computes eternal and static ROS free radicals, complex ROS models diffusion and time
-# mechanics.
+# Complex ROS (a diffusion/green-function-propagator model) is left out of
+# the prompt on purpose: it's unfinished WIP code for AMMPER 3.0
 ROSType = Prompt.ask(
-    "Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS",
-    choices=["a", "b"], show_choices=False,
+    "Please enter ROS Model: \n\ta)Basic ROS",
+    choices=["a"], show_choices=False,
 )
 if ROSType == "a":
     ROSType = "Basic ROS"
-if ROSType == "b":
-    ROSType = "Complex ROS"
 
 
 
 # description of simulation to be written to file
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
+if radType in ("150 MeV Proton", "Gamma"):
+    simDescription += "\nDose: " + f"{Gy:g}" + " Gy"
 
 # results folder name with the time that the simulation completed.
 resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
@@ -168,8 +180,8 @@ for g in range(1,gen+1):
     # calculation of radiation in simulation space
     if radType == "Gamma":
         if g == radGen:
-            
-            dose = 1
+
+            dose = Gy
             # radData = np.zeros([1, 6], dtype=float)
             # Dose input, radGenE stop point for gamma radiation.
             radData = GammaRadGen(dose)
@@ -242,6 +254,8 @@ for g in range(1,gen+1):
                 energyThreshold = 20
                 for track in range(numTrav):
                     # choose a random track out of the 8 available/proton energy
+                    # @TODO TRACK RANGE: int(rand.uniform(0,7)) 0-6, should be rand.randint(0,7).
+
                     trackNum  = int(rand.uniform(0,7))
                     # generate traversal data for omnidirectional traversals
                     radData_trans = genTraverse_deepSpace(N,protonEnergy,trackNum,energyThreshold)
@@ -252,7 +266,7 @@ for g in range(1,gen+1):
                     if ROSType == "Basic ROS":
                         ROSData_new = genROSOld(radData_trans, cells)
                     
-                    # creates a column indicating what generation the ROS and radData occured at
+                    # creates a column indicating what generation the ROS and radData occurred at
                     genArr = np.ones([len(radData_trans),1],dtype=int)*g
                     # compile radData with the generation indicator
                     radData_trans = np.hstack((radData_trans,genArr))
@@ -280,13 +294,16 @@ for g in range(1,gen+1):
                 # parameter that allows non-damaging energy depositions to be ignored (used to speed up simulation)
                 energyThreshold = 20
                 # choose a random track out of the 8 available/proton energy
+                # @TODO TRACK RANGE: int(rand.uniform(0,7)) 0-6, should be rand.randint(0,7).
+
                 trackNum = int(rand.uniform(0,7))
                 # generate traversal data for unidirectional traversals
                 radData_trans = genTraverse_groundTesting(N,protonEnergy,trackNum,energyThreshold,radType)
                 # compile radData from this traversal with all radData
                 radData = np.vstack([radData,radData_trans])
-                
-                #remove placeholder from beginning
+
+                # @TODO Dropped Event: this delete is inside the for loop, so it runs once per proton energy (14 times), not once. 
+                # The first call removes the placeholder; the other 13 each delete a real energy deposition this changes GCRSim output.
                 radData = np.delete(radData,(0),axis = 0)
             # generate ROS data from all traversal energy depositions
             #ROSData = genROS(radData,cells)
@@ -471,9 +488,13 @@ for g in range(1,gen+1):
 ######################################## Random decay, lifetime ROS for complex model ################################
     if ROSType == "Complex ROS":
         if g > radGen:
-            ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
             # half life 1 gen = .5, half life 2 gen = .707, half life 3 gen = .7937, 20 min half life = .125
-            ROSData = ROSDatak
+            if len(ROSData) > 1:
+                ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
+                ROSData = ROSDatak
+            elif len(ROSData) == 1 and rand.random() < 0.5:
+                # a single remaining event can't be split 50/50 by count apply the same half-life odds directly
+                ROSData = np.zeros([1,6],dtype = float)
 
     
 

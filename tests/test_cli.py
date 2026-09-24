@@ -28,7 +28,7 @@ def test_quickstart_maps_flags_to_the_legacy_argv_contract(monkeypatch):
     )
 
     exit_code = cli.main(
-        ["quickstart", "--dose", "2.5", "--cell-type", "rad51", "--ros-type", "complex",
+        ["quickstart", "--dose", "2.5", "--cell-type", "rad51", "--ros-type", "basic",
          "--name", "my_run"]
     )
 
@@ -37,7 +37,21 @@ def test_quickstart_maps_flags_to_the_legacy_argv_contract(monkeypatch):
     module_name, argv = calls[0]
     assert module_name == "ammper.AMMPERBulk_aB"
     # radType, cellType, ROSType, dose, folder -- see README's argument contract
-    assert argv == ["AMMPERBulk_aB.py", "a", "b", "b", "2.5", "my_run"]
+    assert argv == ["AMMPERBulk_aB.py", "a", "b", "a", "2.5", "my_run"]
+
+
+def test_quickstart_rejects_the_disabled_complex_ros_model(monkeypatch):
+    # Complex ROS is unfinished and disabled; it must not be selectable.
+    calls = []
+    monkeypatch.setattr(
+        cli, "_run_module_as_main", lambda module_name, argv: calls.append((module_name, argv))
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["quickstart", "--ros-type", "complex"])
+
+    assert excinfo.value.code == 2
+    assert calls == []
 
 
 def test_quickstart_defaults_to_the_fast_zero_dose_run(monkeypatch):
