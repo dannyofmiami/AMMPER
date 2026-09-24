@@ -1119,7 +1119,7 @@
       </font>
      </property>
      <property name="title">
-      <string>Radiation Dose (150 MeV Proton Only)</string>
+      <string>Radiation Dose (150 MeV Proton or Gamma)</string>
      </property>
      <widget class="QSlider" name="horizontalSlider">
       <property name="geometry">
@@ -1358,9 +1358,9 @@
      <widget class="QRadioButton" name="radioButton_8">
       <property name="geometry">
        <rect>
-        <x>260</x>
+        <x>240</x>
         <y>30</y>
-        <width>89</width>
+        <width>175</width>
         <height>20</height>
        </rect>
       </property>
@@ -1370,8 +1370,11 @@
         <pointsize>10</pointsize>
        </font>
       </property>
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="text">
-       <string>Complex</string>
+       <string>Complex (unavailable)</string>
       </property>
      </widget>
     </widget>
