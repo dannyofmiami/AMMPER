@@ -1,34 +1,6 @@
 """
 Machine pre-flight checks for AMMPER.
 
-Complex ROS (genROS) emits 82 ROS rows per radiation-deposition event and builds
-its output with a growing ``np.vstack``, so its peak memory scales linearly with
-the dose (about 0.74 GB per Gy for 150 MeV Proton) and its run time grows faster
-than linearly. On a small machine a high-dose Complex ROS run does not fail
-cleanly: it swaps, stalls, or takes the machine down. This module estimates the
-cost of a run *before* it starts and compares it with the memory the machine
-actually has free.
-
-It is deliberately separate from the simulation engine: it imports nothing from
-the engine and changes no simulation behavior. Nothing here is called by the
-engine scripts. ``ammper setup`` prints the audit for the current machine, and
-entry points that offer Complex ROS (the GUI's Launch button, ``ammper run``, ``ammper
-quickstart`` and the bulk scripts) call ``complex_ros_warning()`` to warn the user before a
-run starts (it warns, it never blocks);
-``require_complex_ros_capacity()`` is the strict variant that raises instead.
-
-The constants below were MEASURED (single WT runs, 150 MeV Proton, Complex ROS,
-Apple M-series, 26 GB RAM, 2026-10-07):
-
-    dose    ROS events   whole run   peak RSS
-    2.5 Gy     6,916       15 s       1.9 GB
-    5   Gy    13,832       35 s       3.7 GB
-    10  Gy    27,664      122 s       7.3 GB
-    20/30 Gy: not run; extrapolated by the same model.
-
-Memory is a good predictor (linear in events). Time is hardware dependent and
-is shown for information only; it never blocks a run.
-
 @author: dannyofmiami
 """
 
