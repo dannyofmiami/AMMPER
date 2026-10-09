@@ -1,4 +1,4 @@
-# AMMPER
+# AMMPER v2
 
 <p align="center">
   <img src="images/AMMPER_Logo1.PNG" alt="AMMPER logo" width="420" />
