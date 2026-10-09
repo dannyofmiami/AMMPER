@@ -28,7 +28,7 @@ import uuid as uuid
 from ammper.cellDefinition import Cell
 from ammper.genTraverse_groundTesting import genTraverse_groundTesting
 from ammper.genTraverse_deepSpace import genTraverse_deepSpace
-from ammper.genROS import genROS as _genROS_engine
+from ammper.genROS import genROS
 from ammper.genROSOld import genROSOld
 from ammper.cellPlot import cellPlot
 from ammper.cellPlot_deepSpace import cellPlot_deepSpace
@@ -40,20 +40,6 @@ import time
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 start_time = time.time()
-
-# The Complex ROS generator builds all of its output in one blocking call, so the window cannot
-# repaint while it runs (about 10 s at 2.5 Gy, minutes at higher doses). Say so on the progress
-# screen first so the pause is not silent. Same call, same result: only a label update is added.
-_running_sim = None
-
-
-def genROS(radData, cells):
-    if _running_sim is not None:
-        _running_sim.label_2.setText(
-            "Building Complex ROS data. This window may pause here (longer at higher doses).")
-        QApplication.processEvents()
-    return _genROS_engine(radData, cells)
-
 
 class Widget(QWidget):
     def __init__(self, parent=None):
@@ -97,20 +83,7 @@ class Widget(QWidget):
             QRadioButton:focus, QCheckBox:focus {
                 outline: 2px solid #50526b;
             }
-            /* Drawn by Qt, not the OS theme, so it keeps its colors even if the native macOS
-               bar would render gray (e.g. when this window is not the active one). */
-            QProgressBar {
-                border: none;
-                border-radius: 3px;
-                background-color: #888cc1;
-                margin: 8px 0px;
-            }
-            QProgressBar::chunk {
-                background-color: #001f98;
-                border-radius: 3px;
-            }
         """)
-        self.ui.progressBar.setTextVisible(False)
 
         for _btn in self.findChildren(QPushButton):
             _btn.setAttribute(Qt.WA_Hover, True)
@@ -451,8 +424,6 @@ class Widget(QWidget):
         self.display = self.checkBox_2.isChecked()
 
     def simSetup(self):
-        global _running_sim
-        _running_sim = self
         self.simDescription = "Cell Type: " + self.cellType + "\nRad Type: " + self.radType + "\nSim Dim: " +  str(self.N) + "microns\nNumGen: " + str(self.gen) + "ROS model: " + str(self.ROSType)
         if self.radType == "150 MeV Proton":
             self.simDescription += "\nDose: " + f"{self.Gy:g}" + " Gy"
