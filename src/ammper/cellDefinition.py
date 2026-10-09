@@ -404,7 +404,8 @@ class Cell:
             dp = dp.loc[((dp["Posy"] <= currPos[1] + 2) & (dp["Posy"] >= currPos[1] - 2))]
 
         if dp.empty == False:
-            dp = dp.loc[((dp["Posz"] <= currPos[2] + 2) & (dp["Posz"] >= currPos[2] - 2))]
+            #TODO address this Posz issue in v3. bitwise issue in the parenthesis
+            dp = dp.loc[((dp["Posz"] <= currPos[2]) + 2 & (dp["Posz"] >= currPos[2] - 2))]
 
         if dp.empty == False:
             # print('There is likely ROS damage')
@@ -508,7 +509,8 @@ class Cell:
             dp = dp.loc[((dp["Posy"] <= currPos[1] + 2) & (dp["Posy"] >= currPos[1] - 2))]
 
         if dp.empty == False:
-            dp = dp.loc[((dp["Posz"] <= currPos[2] + 2) & (dp["Posz"] >= currPos[2] - 2))]
+            #TODO address this Posz issue in v3. bitwise issue in the parenthesis
+            dp = dp.loc[((dp["Posz"] <= currPos[2]) + 2 & (dp["Posz"] >= currPos[2] - 2))]
 
         if dp.empty == False:
             # print('There is likely ROS damage')

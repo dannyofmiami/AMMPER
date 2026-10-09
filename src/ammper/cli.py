@@ -42,9 +42,9 @@ BANNER = r"""
 """
 
 CELL_TYPES = {"wt": "a", "rad51": "b"}
-# "complex" (the diffusion/green-function-propagator ROS model) is left out
-# that never completes at realistic dose levels. Not offered as a choice. WIP in AMMPER 3.0
-ROS_TYPES = {"basic": "a"}
+# "complex" is the diffusion/decay ROS model. Above ~10 Gy it needs more RAM than many machines
+# have, so runs it cannot hold trigger a warning (ammper.preflight); it is never blocked.
+ROS_TYPES = {"basic": "a", "complex": "b"}
 
 
 def _console():
@@ -99,6 +99,12 @@ def cmd_quickstart(args):
         f"dose={dose} Gy)...\n"
     )
 
+    if args.ros_type == "complex":
+        from ammper import preflight
+        warning = preflight.complex_ros_warning(preflight.PROTON, float(args.dose))
+        if warning:
+            console.print(f"[bold yellow][!] Warning:[/bold yellow] {warning}\n")
+
     start = time.time()
     _run_module_as_main(
         "ammper.AMMPERBulk_aB",
@@ -152,6 +158,46 @@ def _check(console, table, label, ok, detail=""):
     return ok
 
 
+def _machine_check(console):
+    """This machine's memory vs. Complex ROS run sizes. Informational: never affects the exit status."""
+    from ammper import preflight
+
+    specs = preflight.detect_machine()
+    console.print("\n[bold]Machine check[/bold] (memory needed by Complex ROS runs)")
+    ram = (f"{specs.total_ram_gb:.1f} GB total, {specs.available_ram_gb:.1f} GB free"
+           if specs.available_ram_gb is not None else "could not be detected")
+    console.print(f"  {specs.system} ({specs.machine}), {specs.cpu_count} CPU cores; memory: {ram}")
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Complex ROS run")
+    table.add_column("Peak memory", justify="right")
+    table.add_column("Est. time*", justify="right")
+    table.add_column("This machine")
+    styles = {"ok": "[green]OK[/green]", "warn": "[yellow]caution[/yellow]",
+              "block": "[bold red]too large[/bold red]"}
+    levels = []
+    for rad_type, dose, est, level in preflight.complex_ros_table(specs):
+        levels.append(level)
+        table.add_row(f"{rad_type} {dose:g} Gy", f"{est.peak_gb:.1f} GB",
+                      f"{est.minutes:.1f} min", styles[level])
+    console.print(table)
+    console.print("[dim]* measured on an Apple M-series chip; slower CPUs take longer. Memory is "
+                  "the limit that crashes machines.[/dim]")
+
+    if specs.available_ram_gb is None:
+        console.print("[yellow][!] Free memory could not be detected, so Complex ROS runs are "
+                      "unchecked. Keep at least 1 GB of free RAM per Gy.[/yellow]")
+    elif any(level != "ok" for level in levels):
+        ceiling = preflight.max_safe_proton_dose(specs)
+        limit = (f"above {ceiling:g} Gy" if ceiling else "of any dose")
+        console.print(f"[bold yellow][!] Warning:[/bold yellow] this machine does not have the "
+                      f"free memory for every Complex ROS run. Complex ROS runs {limit} may "
+                      "stall, swap or crash it. Close other applications, use a lower dose, "
+                      "or use Basic ROS.")
+    else:
+        console.print("[green][✔] This machine can run every Complex ROS run listed.[/green]")
+
+
 def cmd_setup(args):
     """Check that the environment is ready to run simulations."""
     console = _console()
@@ -194,6 +240,8 @@ def cmd_setup(args):
     all_ok &= _check(console, table, "figures/ output directory is writable", writable, detail)
 
     console.print(table)
+
+    _machine_check(console)
 
     if all_ok:
         console.print(

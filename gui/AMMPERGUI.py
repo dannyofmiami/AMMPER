@@ -15,7 +15,7 @@ import sys
 import subprocess
 import random
 
-from PyQt5.QtWidgets import QApplication, QWidget, QShortcut, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QShortcut, QPushButton, QFileDialog, QMessageBox
 from PyQt5.QtGui import QPixmap, QIcon, QFontDatabase, QKeySequence
 from PyQt5.QtCore import Qt, QRect
 from vgui_form import Ui_Widget # AMMPER interface 
@@ -153,9 +153,8 @@ class Widget(QWidget):
 
         self.radioButton_7.toggled.connect(self.onRadioButtonClicked3)
         self.radioButton_8.toggled.connect(self.onRadioButtonClicked3)
-        # Complex ROS is unfinished WIP code (genROS's diffusion model never
-        # completes at realistic dose levels) disabled for now.
-        self.radioButton_8.setEnabled(False)
+        # Basic ROS is the default; Complex ROS is selectable, and Launch warns (never blocks)
+        # when this machine looks short of memory for the chosen dose (_confirmComplexROS).
         self.radioButton_7.setChecked(True)
 
         self.ui.checkBox.stateChanged.connect(self.fileExport)
@@ -241,7 +240,33 @@ class Widget(QWidget):
     def pushButton_3_clicked(self):
         self.stackedWidget.setCurrentIndex(4)
 
+    def _confirmComplexROS(self):
+        """Warn (not forbid) before a Complex ROS run this machine may not be able to hold.
+
+        Returns True to go ahead. Complex ROS needs about 0.74 GB of RAM per Gy and can stall
+        or crash a small machine, so ask first. Does nothing for Basic ROS, nor when this
+        machine has the memory for the chosen dose.
+        """
+        if self.ROSType != "Complex ROS":
+            return True
+        from ammper import preflight
+        # Gamma runs at a fixed 1 Gy; Proton uses the slider's dose
+        dose = self.Gy if self.radType == "150 MeV Proton" else 1.0
+        warning = preflight.complex_ros_warning(self.radType, dose)
+        if warning is None:
+            return True
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Warning)
+        box.setWindowTitle("Complex ROS may not run on this machine")
+        box.setText("This computer may not have enough free memory for this Complex ROS run.")
+        box.setInformativeText(warning + "\n\nRun it anyway?")
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        box.setDefaultButton(QMessageBox.No)
+        return box.exec_() == QMessageBox.Yes
+
     def pushButton_4_clicked(self):
+        if not self._confirmComplexROS():
+            return
         if self.display:
             self.stackedWidget.setCurrentIndex(2)
             self.progressBar.setValue(0)
@@ -264,8 +289,6 @@ class Widget(QWidget):
         self.stackedWidget.setCurrentIndex(1)
 
     def onRadioButtonClicked(self):
-        # Gamma raises this to 2 (no 0 Gy); every other type allows 0 again.
-        self.horizontalSlider.setMinimum(1)
         if self.radioButton.isChecked():
             self.sliderOn = True
             self.Gy = float(self.radAmount)
@@ -306,13 +329,11 @@ class Widget(QWidget):
             self.ROSData = np.zeros([1,6],dtype = float)
 
         if self.radioButton_4.isChecked():
-            self.sliderOn = True
+            self.sliderOn = False
             self.radType = "Gamma"
-
-            # the slider's 0 Gy position is excluded for Gamma.
-            self.horizontalSlider.setMinimum(2)
+            self.horizontalSlider.setValue(1)
+            self.ui.label_11.setText(str(0))
             self.horizontalSlider.setEnabled(self.sliderOn)
-            self.Slider()
             self.gen = 15
             self.radGen = 10
             self.N = 64
@@ -341,7 +362,7 @@ class Widget(QWidget):
             if self.radType == "GCRSim":
                 self.radAmount = 0.5
 
-            if self.radType == "Deep Space":
+            if self.radType == "Deep Space" or self.radType == "Gamma":
                 self.radAmount = 0
 
         self.Gy = float(self.radAmount)
@@ -404,7 +425,7 @@ class Widget(QWidget):
 
     def simSetup(self):
         self.simDescription = "Cell Type: " + self.cellType + "\nRad Type: " + self.radType + "\nSim Dim: " +  str(self.N) + "microns\nNumGen: " + str(self.gen) + "ROS model: " + str(self.ROSType)
-        if self.radType in ("150 MeV Proton", "Gamma"):
+        if self.radType == "150 MeV Proton":
             self.simDescription += "\nDose: " + f"{self.Gy:g}" + " Gy"
 
         self.resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
@@ -479,7 +500,7 @@ class Widget(QWidget):
             if self.radType == "Gamma":
                 if g == self.radGen:
 
-                    dose = self.Gy
+                    dose = 1
                     # radData = np.zeros([1, 6], dtype=float)
                     # Dose input, radGenE stop point for gamma radiation.
                     self.radData = GammaRadGen(dose)
