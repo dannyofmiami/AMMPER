@@ -68,7 +68,7 @@ That installs the `ammper` command:
 
 | Command | What it does |
 |---|---|
-| `ammper setup` | Checks that dependencies and data are in place |
+| `ammper setup` | Checks that dependencies and data are in place, and warns if your machine lacks the memory for the heavier Complex ROS runs |
 | `ammper quickstart` | Runs a short tutorial simulation (a few seconds), no questions asked |
 | `ammper run` | Runs a full simulation, asking you for radiation type, dose, cell type, and ROS model |
 | `ammper gui` | Opens the desktop GUI |
@@ -94,7 +94,7 @@ finishes.
   | Radiation type | Dose setting | When radiation is applied |
   |---|---|---|
   | **150 MeV Proton** | 0, 2.5, 5, 10, 20, or 30 Gy | Once, at generation 2 |
-  | **Gamma** | Any dose above 0, up to 30 Gy | Once (at generation 10 or 2, depending on the tool) |
+  | **Gamma** | Fixed 1 Gy | Once (at generation 10 or 2, depending on the tool) |
   | **NSRL GCRSim** | Fixed mixed-energy proton field | Once, at generation 2 |
   | **Deep Space** | Fixed 0.1-month proton exposure | Spread across generations 1–14 |
 
@@ -161,8 +161,8 @@ their own paths, so they work from any folder.
 # One simulation: radType cellType ROSType dose outputFolder
 #   radType   a = 150 MeV Proton   b = GCRSim   c = Deep Space   d = Gamma
 #   cellType  a = wild type        b = rad51
-#   ROSType   a = Basic
-#   dose      Proton: 0, 2.5, 5, 10, 20, 30 · Gamma: >0 to 30 · others: any placeholder
+#   ROSType   a = Basic   b = Complex (warns if your machine is short of memory)
+#   dose      Proton: 0, 2.5, 5, 10, 20, 30 · others: any placeholder
 python3 -m ammper.AMMPERBulk_aB a a a 2.5 WT_Basic_25
 ```
 

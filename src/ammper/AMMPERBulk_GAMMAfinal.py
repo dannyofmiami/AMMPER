@@ -106,11 +106,12 @@ ROSType = sys.argv[3]
 if ROSType == "a":
     ROSType = "Basic ROS"
 if ROSType == "b":
-    # Complex ROS is unfinished WIP code
-    raise ValueError(
-        "ROSType 'b' (Complex ROS) is disabled — it's unfinished and does "
-        "not complete at realistic dose levels. Use 'a' (Basic ROS)."
-    )
+    ROSType = "Complex ROS"
+    # Warn, never block: nothing is printed unless this machine looks short of memory.
+    from ammper import preflight
+    _warning = preflight.complex_ros_warning(radType, float(radAmount) if radType in ("150 MeV Proton", "Gamma") else 0.0)
+    if _warning:
+        print("[!] Warning: " + _warning, file=sys.stderr)
 
 
 

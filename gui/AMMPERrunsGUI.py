@@ -184,9 +184,6 @@ class Widget(QWidget):
         
         self.radioButton_7.toggled.connect(self.onRadioButtonClicked3)
         self.radioButton_8.toggled.connect(self.onRadioButtonClicked3)
-        # Complex ROS is unfinished WIP code (genROS's diffusion model never
-        # completes at realistic dose levels)
-        self.radioButton_8.setEnabled(False)
         self.radioButton_7.setChecked(True)
 
         self.checkBox.stateChanged.connect(self.fileExport)
@@ -251,7 +248,7 @@ class Widget(QWidget):
                     labelROS = 'WT'
                 elif ROSSelect == 'b':
                     labelROS = 'rad51'
-                ROSSelect = input("Please enter ROS Model: \n\ta)Basic ROS\n")
+                ROSSelect = input("Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS\n")
                 radSelect = input("Please enter radiation dose. Options are: 0, 2.5, 5, 10, 20, 30 (Gy).\n")
                 if ROSSelect == 'a':
                     labelROS = 'Basic'
@@ -268,7 +265,7 @@ class Widget(QWidget):
                     labelCell = 'WT'
                 elif ROSSelect == 'b':
                     labelCell = 'rad51'
-                ROSSelect = input("Please enter ROS Model: \n\ta)Basic ROS\n")
+                ROSSelect = input("Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS\n")
                 radSelect = input("Please enter radiation dose. Options are: 0, 2.5, 5, 10, 20, 30 (Gy).\n")
                 if ROSSelect == 'a':
                     labelROS = 'Basic'
