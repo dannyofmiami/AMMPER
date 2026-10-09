@@ -30,7 +30,7 @@ from ammper import paths as P  # resolves data/ and results/ paths
 & @dannyofmiami
 """
 
-from rich.prompt import Prompt, FloatPrompt
+from rich.prompt import Confirm, Prompt
 
 import numpy as np
 import random as rand
@@ -90,14 +90,6 @@ elif radType == 'd':
     radGen = 10
     #radGenE = 10
     N = 64 # real 64 ?
-    # GammaRadGen can't generate a 0 Gy field, and the manuscript uses the
-    # 150 MeV Proton 0 Gy run as the gamma control, so 0 is rejected here.
-    while True:
-        Gy = FloatPrompt.ask("Please enter gamma radiation dose in Gy (greater than 0, up to 30)")
-        if 0 < Gy <= 30:
-            break
-        print("Gamma dose must be greater than 0 and at most 30 Gy. For a 0 Gy control, run 150 MeV Proton at 0 Gy.")
-    radAmount = Gy
 
 
 cellType = Prompt.ask(
@@ -109,20 +101,32 @@ if cellType == "a":
 elif cellType == "b":
     cellType = "rad51"
 
-# Complex ROS (a diffusion/green-function-propagator model) is left out of
-# the prompt on purpose: it's unfinished WIP code for AMMPER 3.0
+# ROS model old and new, ROS Old computes eternal and static ROS free radicals, complex ROS models diffusion and time
+# mechanics.
 ROSType = Prompt.ask(
-    "Please enter ROS Model: \n\ta)Basic ROS",
-    choices=["a"], show_choices=False,
+    "Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS",
+    choices=["a", "b"], show_choices=False,
 )
 if ROSType == "a":
     ROSType = "Basic ROS"
+if ROSType == "b":
+    ROSType = "Complex ROS"
+if ROSType == "Complex ROS":
+    # Warn, never block: Complex ROS needs ~0.74 GB of RAM per Gy and can stall or crash a small
+    # machine at higher doses. Nothing is printed unless this machine looks short of memory.
+    from ammper import preflight
+    _warning = preflight.complex_ros_warning(
+        radType, Gy if radType == "150 MeV Proton" else 1.0)
+    if _warning:
+        print("\n[!] Warning: " + _warning + "\n")
+        if not Confirm.ask("Run it anyway?", default=False):
+            raise SystemExit(0)
 
 
 
 # description of simulation to be written to file
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
-if radType in ("150 MeV Proton", "Gamma"):
+if radType == "150 MeV Proton":
     simDescription += "\nDose: " + f"{Gy:g}" + " Gy"
 
 # results folder name with the time that the simulation completed.
@@ -181,7 +185,7 @@ for g in range(1,gen+1):
     if radType == "Gamma":
         if g == radGen:
 
-            dose = Gy
+            dose = 1
             # radData = np.zeros([1, 6], dtype=float)
             # Dose input, radGenE stop point for gamma radiation.
             radData = GammaRadGen(dose)

@@ -89,14 +89,6 @@ elif radType == 'd':
     radGen = 2
     #radGenE = 10
     N = 64 # real 64 ?
-    radAmount = sys.argv[4]
-    Gy = float(radAmount)
-    # GammaRadGen can't generate a 0 Gy field
-    if not 0 < Gy <= 30:
-        raise ValueError(
-            f"Gamma dose must be greater than 0 and at most 30 Gy (got {radAmount}). "
-            "For a 0 Gy control, run 150 MeV Proton at 0 Gy."
-        )
 
 
 #cellType = input("Please enter cell type:\n\ta)Wild Type\n\tb)rad51\n")
@@ -115,19 +107,18 @@ ROSType = sys.argv[3]
 if ROSType == "a":
     ROSType = "Basic ROS"
 if ROSType == "b":
-    # Complex ROS is unfinished WIP code (genROS's diffusion model never
-    # completes at realistic dose levels) and isn't offered as a choice in
-    # any CLI/GUI entry point. See docs/planning/ammper_3.0_roadmap.md.
-    raise ValueError(
-        "ROSType 'b' (Complex ROS) is disabled — it's unfinished and does "
-        "not complete at realistic dose levels. Use 'a' (Basic ROS)."
-    )
+    ROSType = "Complex ROS"
+    # Warn, never block: nothing is printed unless this machine looks short of memory.
+    from ammper import preflight
+    _warning = preflight.complex_ros_warning(radType, Gy if radType == "150 MeV Proton" else 1.0)
+    if _warning:
+        print("[!] Warning: " + _warning, file=sys.stderr)
 
 
 
 # description of simulation to be written to file
 simDescription = "Cell Type: " + cellType + "\nRad Type: " + radType + "\nSim Dim: " + str(N) + "microns\nNumGen: " + str(gen) + "ROS model: " + str(ROSType)
-if radType in ("150 MeV Proton", "Gamma"):
+if radType == "150 MeV Proton":
     simDescription += "\nDose: " + f"{Gy:g}" + " Gy"
 
 # results folder name with the time that the simulation completed.
@@ -186,7 +177,7 @@ for g in range(1,gen+1):
     if radType == "Gamma":
         if g == radGen:
 
-            dose = Gy
+            dose = 1
             # radData = np.zeros([1, 6], dtype=float)
             # Dose input, radGenE stop point for gamma radiation.
             radData = GammaRadGen(dose)

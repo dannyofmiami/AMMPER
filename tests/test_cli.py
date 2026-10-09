@@ -28,7 +28,7 @@ def test_quickstart_maps_flags_to_the_legacy_argv_contract(monkeypatch):
     )
 
     exit_code = cli.main(
-        ["quickstart", "--dose", "2.5", "--cell-type", "rad51", "--ros-type", "basic",
+        ["quickstart", "--dose", "2.5", "--cell-type", "rad51", "--ros-type", "complex",
          "--name", "my_run"]
     )
 
@@ -37,21 +37,33 @@ def test_quickstart_maps_flags_to_the_legacy_argv_contract(monkeypatch):
     module_name, argv = calls[0]
     assert module_name == "ammper.AMMPERBulk_aB"
     # radType, cellType, ROSType, dose, folder -- see README's argument contract
-    assert argv == ["AMMPERBulk_aB.py", "a", "b", "a", "2.5", "my_run"]
+    assert argv == ["AMMPERBulk_aB.py", "a", "b", "b", "2.5", "my_run"]
 
 
-def test_quickstart_rejects_the_disabled_complex_ros_model(monkeypatch):
-    # Complex ROS is unfinished and disabled; it must not be selectable.
+def _quickstart_complex(monkeypatch, capsys, free_gb, dose):
+    from ammper import preflight
+
     calls = []
     monkeypatch.setattr(
         cli, "_run_module_as_main", lambda module_name, argv: calls.append((module_name, argv))
     )
+    monkeypatch.setattr(
+        preflight, "detect_machine",
+        lambda: preflight.MachineSpecs("Linux", "x86_64", 8, free_gb, free_gb))
+    code = cli.main(["quickstart", "--ros-type", "complex", "--dose", str(dose)])
+    return code, calls, capsys.readouterr().out
 
-    with pytest.raises(SystemExit) as excinfo:
-        cli.main(["quickstart", "--ros-type", "complex"])
 
-    assert excinfo.value.code == 2
-    assert calls == []
+def test_complex_ros_warns_a_small_machine_at_a_high_dose_but_still_runs(monkeypatch, capsys):
+    code, calls, out = _quickstart_complex(monkeypatch, capsys, free_gb=8, dose=30)
+    assert code == 0 and len(calls) == 1           # a warning, never a block
+    assert "Warning" in out and "swap or crash" in out
+
+
+def test_complex_ros_is_silent_for_machines_and_doses_that_are_fine(monkeypatch, capsys):
+    for free_gb, dose in ((64, 30), (8, 2.5)):
+        code, calls, out = _quickstart_complex(monkeypatch, capsys, free_gb=free_gb, dose=dose)
+        assert code == 0 and len(calls) == 1 and "Warning" not in out
 
 
 def test_quickstart_defaults_to_the_fast_zero_dose_run(monkeypatch):
