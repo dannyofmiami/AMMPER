@@ -35,6 +35,7 @@ import numpy as np
 import random as rand
 import uuid as uuid
 from ammper.cellDefinition import Cell
+from ammper.data_check import check_ritracks_available
 from ammper.genTraverse_groundTesting import genTraverse_groundTesting
 from ammper.genTraverse_deepSpace import genTraverse_deepSpace
 from ammper.genROS import genROS
@@ -90,6 +91,9 @@ elif radType == 'd':
     #radGenE = 10
     N = 64 # real 64 ?
 
+# fail fast (before running the sim) if this radType needs RITRACKS data
+# that isn't on disk -- see CONTRIBUTING.md
+check_ritracks_available(radType)
 
 #cellType = input("Please enter cell type:\n\ta)Wild Type\n\tb)rad51\n")
 cellType = sys.argv[2]

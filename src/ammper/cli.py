@@ -23,6 +23,7 @@ from rich.prompt import Prompt
 from rich.table import Table
 from rich.traceback import install as _install_rich_traceback
 
+from ammper import data_check, data_fetch
 from ammper import paths as P
 
 _install_rich_traceback(show_locals=False)
@@ -221,7 +222,6 @@ def cmd_setup(args):
         all_ok &= _check(console, table, f"dependency: {module_name}", ok, detail)
 
     data_dirs = {
-        "RITRACKS radiation tracks": P.RADIATION_INPUT,
         "alamarBlue experimental data": P.AB_EXPERIMENTAL,
         "BioSentinel experimental data": P.BIOSENTINEL,
         "fluence tables": P.FLUENCE,
@@ -229,6 +229,28 @@ def cmd_setup(args):
     for label, path in data_dirs.items():
         exists = os.path.isdir(path) and bool(os.listdir(path))
         all_ok &= _check(console, table, label, exists, path)
+
+    # RITRACKS is split: the bundled 150 MeV Proton tutorial subset is
+    # required for a healthy baseline install (quickstart/150 MeV Proton/
+    # Gamma all need only it); the rest of the dataset (GCRSim, Deep Space)
+    # is fetched separately via `ammper data pull` and does NOT gate
+    # all_ok here -- a fresh clone without it is still a working install.
+    tutorial_path = P.radiation_input("150")
+    tutorial_ok = os.path.isdir(tutorial_path) and bool(os.listdir(tutorial_path))
+    all_ok &= _check(
+        console, table, "RITRACKS tutorial data (150 MeV Proton)",
+        tutorial_ok, tutorial_path,
+    )
+
+    full_results = data_fetch.status()
+    full_present, full_total = sum(full_results.values()), len(full_results)
+    detail = f"{full_present}/{full_total} energies present"
+    if full_present < full_total:
+        detail += " -- run `ammper data pull` for GCRSim / Deep Space"
+    _check(
+        console, table, "RITRACKS full dataset (Zenodo)",
+        full_present == full_total, detail,
+    )
 
     try:
         figures_dir = P.figures()  # creates FIGURES/ itself if missing
@@ -258,6 +280,104 @@ def cmd_setup(args):
         return 1
 
 
+def _pull_shortcuts(manifest):
+    """The `ammper data pull ...` commands for the run types that need extra folders, with
+    download sizes taken from the manifest (so they cannot drift from the Zenodo record)."""
+    parts = []
+    for target, radType in (("gcrsim", "GCRSim"), ("deep-space", "Deep Space")):
+        megabytes = data_fetch.download_size(
+            data_check.required_ritracks_energies(radType), manifest) / 1e6
+        parts.append(f"`ammper data pull {target}`" + (f" (~{megabytes:.0f} MB)" if megabytes else ""))
+    gigabytes = data_fetch.download_size(manifest["full_energies"], manifest) / 1e9
+    parts.append("`ammper data pull` (everything" + (f", ~{gigabytes:.1f} GB" if gigabytes else "") + ")")
+    return ", ".join(parts[:-1]) + " or " + parts[-1]
+
+
+def cmd_data_status(args):
+    """Show which RITRACKS energy folders are present locally."""
+    console = _console()
+    _print_banner(console)
+
+    manifest = P.load_ritracks_manifest()
+    tutorial = set(manifest["tutorial_energies"])
+    results = data_fetch.status()
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("", width=3)
+    table.add_column("Energy (MeV)")
+    table.add_column("Source")
+    for name in manifest["full_energies"]:
+        source = "tutorial (bundled)" if name in tutorial else "Zenodo (full dataset)"
+        _check(console, table, name, results[name], source)
+    console.print(table)
+
+    present, total = sum(results.values()), len(results)
+    console.print(f"\n{present}/{total} RITRACKS energy folders present.")
+    if present < total:
+        console.print(
+            "[dim]150 MeV Proton and Gamma work without it. Fetch the rest from "
+            f"Zenodo: {_pull_shortcuts(manifest)}.[/dim]"
+        )
+    return 0
+
+
+def cmd_data_pull(args):
+    """Download RITRACKS energy folders from Zenodo (everything, or just what a run type needs)."""
+    console = _console()
+    _print_banner(console)
+    try:
+        pulled = data_fetch.pull(console, args.targets, force=args.force)
+    except data_fetch.UnknownTargetError as exc:
+        console.print(f"\n[bold red][x] {exc}[/bold red]")
+        return 2
+    except (data_fetch.DatasetNotPublishedError, data_fetch.ChecksumMismatchError) as exc:
+        console.print(f"\n[bold red][x] {exc}[/bold red]")
+        return 1
+    except OSError as exc:
+        console.print(f"\n[bold red][x] {exc}[/bold red]")
+        console.print("[dim]Check your network connection and try again; folders that "
+                      "finished are kept, so re-running continues where it stopped.[/dim]")
+        return 1
+
+    if pulled:
+        console.print(
+            f"\n[bold green][✔] {len(pulled)} RITRACKS folder(s) ready.[/bold green] "
+            "Run `ammper data verify` to confirm."
+        )
+    return 0
+
+
+def cmd_data_verify(args):
+    """Verify the on-disk RITRACKS dataset against the manifest."""
+    console = _console()
+    _print_banner(console)
+
+    results = data_fetch.verify()
+    missing = [name for name, ok in results.items() if not ok]
+
+    if not missing:
+        console.print(
+            f"[bold green][✔] All {len(results)} RITRACKS energy folders "
+            "present and non-empty.[/bold green]"
+        )
+        return 0
+
+    console.print(
+        f"[bold red][x] {len(missing)} of {len(results)} RITRACKS energy "
+        "folders missing or empty:[/bold red]"
+    )
+    console.print(", ".join(missing))
+    console.print("[dim]Run `ammper data pull` (or `ammper data pull gcrsim` / "
+                  "`deep-space`) to fetch them.[/dim]")
+    return 1
+
+
+def cmd_data(args):
+    """`ammper data` with no further subcommand: show its help."""
+    args.data_parser.print_help()
+    return 0
+
+
 EPILOG = """\
 Examples:
   ammper setup                          check your install is ready to go
@@ -265,8 +385,13 @@ Examples:
   ammper quickstart --dose 2.5          tutorial run at 2.5 Gy instead of 0
   ammper run                            full interactive simulation (prompts you for options)
   ammper gui                            launch the desktop GUI
+  ammper data status                    show which RITRACKS energies are present locally
+  ammper data pull                      fetch the full RITRACKS dataset from Zenodo (~3.5GB)
 
 Notes:
+  `ammper quickstart`, `150 MeV Proton`, and `Gamma` runs work out of the box.
+  `GCRSim` and `Deep Space` need the full dataset -- run `ammper data pull` first.
+
   --debug and --version are global flags: put them before the subcommand,
   e.g. `ammper --debug run`, not `ammper run --debug`.
 
@@ -337,7 +462,7 @@ def build_parser():
         help="show the full traceback instead of a short error message",
     )
     subparsers = parser.add_subparsers(
-        dest="command", metavar="{setup,quickstart,run,gui}",
+        dest="command", metavar="{setup,quickstart,run,gui,data}",
         parser_class=_BrandedArgumentParser,
     )
 
@@ -388,6 +513,52 @@ def build_parser():
     )
     p_gui.set_defaults(func=cmd_gui)
 
+    p_data = subparsers.add_parser(
+        "data",
+        help="manage the RITRACKS dataset (tutorial subset vs. downloads from Zenodo)",
+        description="Manage the RITRACKS dataset. 150 MeV Proton and Gamma need only the "
+        "150 MeV tutorial folder (~11MB). GCRSim (~119MB download) and Deep Space "
+        "(~193MB download) need extra folders; the whole dataset is ~1.3GB.",
+    )
+    p_data.set_defaults(func=cmd_data, data_parser=p_data)
+    data_subparsers = p_data.add_subparsers(
+        dest="data_command", metavar="{status,pull,verify}",
+        parser_class=_BrandedArgumentParser,
+    )
+
+    p_data_status = data_subparsers.add_parser(
+        "status",
+        help="show which RITRACKS energy folders are present locally",
+        description="Show which RITRACKS energy folders are present locally, and "
+        "which are bundled tutorial data vs. fetched from Zenodo.",
+    )
+    p_data_status.set_defaults(func=cmd_data_status)
+
+    p_data_pull = data_subparsers.add_parser(
+        "pull",
+        help="download RITRACKS folders from Zenodo (all, or just what a run type needs)",
+        description="Download RITRACKS energy folders from the pinned Zenodo record, check "
+        "each against the manifest's size and sha256, and extract them into "
+        "data/radiation_input/ritracks/. Folders you already have are skipped.",
+    )
+    p_data_pull.add_argument(
+        "targets", nargs="*", metavar="TARGET",
+        help="gcrsim, deep-space, proton, a proton energy such as 20, or all "
+        "(default: all)",
+    )
+    p_data_pull.add_argument(
+        "--force", action="store_true", help="download again even if a folder is already present",
+    )
+    p_data_pull.set_defaults(func=cmd_data_pull)
+
+    p_data_verify = data_subparsers.add_parser(
+        "verify",
+        help="verify the on-disk RITRACKS dataset against the manifest",
+        description="Check every RITRACKS energy folder in the manifest is "
+        "present and non-empty on disk.",
+    )
+    p_data_verify.set_defaults(func=cmd_data_verify)
+
     return parser
 
 
@@ -407,12 +578,13 @@ def _interactive_menu(parser, console):
     console.print("  [bold]quickstart[/bold]  run the ~5s tutorial simulation")
     console.print("  [bold]run[/bold]         full interactive simulation")
     console.print("  [bold]gui[/bold]         launch the desktop GUI")
+    console.print("  [bold]data[/bold]        manage the RITRACKS dataset (fetch the full ~3.5GB set)")
     console.print("  [bold]help[/bold]        show the full --help text")
     console.print()
 
     choice = Prompt.ask(
         "Enter a command",
-        choices=["setup", "quickstart", "run", "gui", "help", "quit"],
+        choices=["setup", "quickstart", "run", "gui", "data", "help", "quit"],
         default="setup",
         console=console,
     )

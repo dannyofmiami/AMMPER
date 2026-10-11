@@ -15,10 +15,11 @@ import sys
 import subprocess
 import random
 
-from PyQt5.QtWidgets import QApplication, QWidget, QShortcut, QPushButton, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import (QApplication, QWidget, QShortcut, QPushButton, QFileDialog, QMessageBox,
+                             QProgressDialog)
 from PyQt5.QtGui import QPixmap, QIcon, QFontDatabase, QKeySequence
 from PyQt5.QtCore import Qt, QRect
-from vgui_form import Ui_Widget # AMMPER interface 
+from vgui_form import Ui_Widget # AMMPER interface
 from gui.movieMaker import movie_maker as mm
 
 # AMMPER modules
@@ -26,6 +27,9 @@ import numpy as np
 import random as rand
 import uuid as uuid
 from ammper.cellDefinition import Cell
+import io
+from rich.console import Console
+from ammper import data_fetch
 from ammper.genTraverse_groundTesting import genTraverse_groundTesting
 from ammper.genTraverse_deepSpace import genTraverse_deepSpace
 from ammper.genROS import genROS
@@ -264,10 +268,53 @@ class Widget(QWidget):
         box.setDefaultButton(QMessageBox.No)
         return box.exec_() == QMessageBox.Yes
 
+    def _ensureRadiationData(self):
+        """True if this radiation type's RITRACKS data is on disk, offering to download what is
+        missing (GCRSim and Deep Space need folders that do not ship with the repo).
+
+        A "No" or a failed download keeps the user on the setup screen with a clear message.
+        """
+        def ask(question):
+            answer = QMessageBox.question(
+                self, "Download radiation data?", question + "\n\nThis only has to be done once.",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+            return answer == QMessageBox.Yes
+
+        bar = {"dialog": None}
+
+        def on_progress(done, total, label):
+            if bar["dialog"] is None:
+                dialog = QProgressDialog("Downloading RITRACKS data from Zenodo...", None, 0, 100, self)
+                dialog.setWindowTitle("Downloading radiation data")
+                dialog.setWindowModality(Qt.WindowModal)
+                dialog.setMinimumDuration(0)
+                bar["dialog"] = dialog
+            bar["dialog"].setLabelText(f"Downloading {label} from Zenodo ({done / 1e6:.0f} of {total / 1e6:.0f} MB)")
+            bar["dialog"].setValue(int(100 * done / total) if total else 0)
+            QApplication.processEvents()
+
+        try:
+            available = data_fetch.ensure_available(
+                self.radType, Console(file=io.StringIO()), ask, progress_callback=on_progress)
+        except (OSError, data_fetch.DatasetNotPublishedError, data_fetch.ChecksumMismatchError) as exc:
+            QMessageBox.warning(self, "Could not download radiation data", str(exc))
+            return False
+        finally:
+            if bar["dialog"] is not None:
+                bar["dialog"].close()
+        if not available:
+            QMessageBox.warning(
+                self, "Missing radiation data",
+                f"{self.radType} needs radiation data that is not on this computer. "
+                "Choose 150 MeV Proton or Gamma, or download it later with the `ammper data pull` command.")
+        return available
+
     def pushButton_4_clicked(self):
         if not self._confirmComplexROS():
             return
         if self.display:
+            if not self._ensureRadiationData():
+                return
             self.stackedWidget.setCurrentIndex(2)
             self.progressBar.setValue(0)
             # fix for progress screen

@@ -230,3 +230,109 @@ def test_interactive_menu_eof_is_treated_as_interrupted(monkeypatch, capsys):
 
     assert exit_code == 130
     assert "Interrupted" in captured.out
+
+
+def test_data_with_no_subcommand_prints_its_own_help(capsys):
+    exit_code = cli.main(["data"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "usage: ammper data" in captured.out
+
+
+def test_data_status_reports_counts_and_the_pull_hint(monkeypatch, capsys):
+    monkeypatch.setattr(
+        cli.P, "load_ritracks_manifest",
+        lambda: {"tutorial_energies": ["150"], "full_energies": ["150", "20", "42.76"],
+                 "files": {"150": {"size": 4_000_000}, "20": {"size": 17_000_000},
+                           "42.76": {"size": 26_000_000}}},
+    )
+    monkeypatch.setattr(cli.data_check, "required_ritracks_energies",
+                        lambda radType: {"GCRSim": {"20", "150"}, "Deep Space": {"42.76"}}[radType])
+    monkeypatch.setattr(cli.data_fetch, "status", lambda: {"150": True, "20": False, "42.76": False})
+
+    exit_code = cli.main(["data", "status"])
+    out = " ".join(capsys.readouterr().out.split())        # Rich wraps long lines
+
+    assert exit_code == 0
+    assert "1/3 RITRACKS energy folders present" in out
+    # shortcuts and sizes come from the manifest, not from hardcoded text
+    assert "`ammper data pull gcrsim` (~21 MB)" in out
+    assert "`ammper data pull deep-space` (~26 MB)" in out
+    assert "`ammper data pull` (everything, ~0.0 GB)" in out
+
+
+def test_data_pull_reports_dataset_not_published_cleanly(monkeypatch, capsys):
+    def boom(console, targets=None, force=False):
+        raise cli.data_fetch.DatasetNotPublishedError("not published yet")
+
+    monkeypatch.setattr(cli.data_fetch, "pull", boom)
+
+    exit_code = cli.main(["data", "pull"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "not published yet" in captured.out
+
+
+def test_data_pull_success_prints_confirmation(monkeypatch, capsys):
+    monkeypatch.setattr(cli.data_fetch, "pull", lambda console, targets=None, force=False: ["20", "23"])
+
+    exit_code = cli.main(["data", "pull"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "2 RITRACKS folder(s) ready" in captured.out
+
+
+def test_data_pull_passes_run_types_and_energies_through(monkeypatch):
+    seen = []
+    monkeypatch.setattr(cli.data_fetch, "pull",
+                        lambda console, targets=None, force=False: seen.append((targets, force)) or [])
+
+    assert cli.main(["data", "pull", "gcrsim", "20"]) == 0
+    assert cli.main(["data", "pull", "--force"]) == 0
+
+    assert seen == [(["gcrsim", "20"], False), ([], True)]
+
+
+def test_data_pull_rejects_an_unknown_target_with_exit_code_2(monkeypatch, capsys):
+    def boom(console, targets=None, force=False):
+        raise cli.data_fetch.UnknownTargetError("'warp' is not a run type")
+
+    monkeypatch.setattr(cli.data_fetch, "pull", boom)
+
+    assert cli.main(["data", "pull", "warp"]) == 2
+    assert "not a run type" in capsys.readouterr().out
+
+
+def test_data_pull_explains_that_finished_folders_are_kept_after_a_network_error(monkeypatch, capsys):
+    def boom(console, targets=None, force=False):
+        raise OSError("timed out")
+
+    monkeypatch.setattr(cli.data_fetch, "pull", boom)
+
+    assert cli.main(["data", "pull"]) == 1
+    out = capsys.readouterr().out
+    assert "timed out" in out and "re-running continues" in out
+
+
+def test_data_verify_all_present(monkeypatch, capsys):
+    monkeypatch.setattr(cli.data_fetch, "verify", lambda: {"150": True, "20": True})
+
+    exit_code = cli.main(["data", "verify"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "All 2 RITRACKS" in captured.out
+
+
+def test_data_verify_reports_missing_folders(monkeypatch, capsys):
+    monkeypatch.setattr(cli.data_fetch, "verify", lambda: {"150": True, "20": False})
+
+    exit_code = cli.main(["data", "verify"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "1 of 2" in captured.out
+    assert "20" in captured.out

@@ -17,7 +17,7 @@ import subprocess
 import random
 # from AMMPERBulk_aB import finish
 
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 from PyQt5.QtGui import QIcon, QFontDatabase
 
 # AMMPER modules
@@ -25,6 +25,7 @@ import numpy as np
 import random as rand
 import uuid as uuid
 from ammper.cellDefinition import Cell
+from ammper.data_check import MissingRadiationDataError, check_ritracks_available
 from ammper.genTraverse_groundTesting import genTraverse_groundTesting
 from ammper.genTraverse_deepSpace import genTraverse_deepSpace
 from ammper.genROS import genROS
@@ -479,6 +480,12 @@ class Widget(QWidget):
 
     def simSetup(self):
         if self.doSim:
+            try:
+                check_ritracks_available(self.radType)
+            except MissingRadiationDataError as exc:
+                QMessageBox.warning(self, "Missing radiation data", str(exc))
+                return
+
             self.simDescription = "Cell Type: " + self.cellType + "\nRad Type: " + self.radType + "\nSim Dim: " +  str(self.N) + "microns\nNumGen: " + str(self.gen) + "ROS model: " + str(self.ROSType)
 
         # results folder name with the time that the simulation completed.
