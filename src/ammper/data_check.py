@@ -71,6 +71,30 @@ def missing_ritracks_energies(folder_names):
     return sorted((n for n in folder_names if not _has_data(n)), key=float)
 
 
+#: The radiation types that read RITRACKS track files (Gamma is synthetic and reads none).
+TRACK_RADIATION_TYPES = ("150 MeV Proton", "GCRSim", "Deep Space")
+
+
+def preset_energies():
+    """{radType: set of ritracks/<name>/ folders} for each radiation type that reads track files."""
+    return {radType: set(required_ritracks_energies(radType)) for radType in TRACK_RADIATION_TYPES}
+
+
+def optional_energies(manifest=None):
+    """The dataset's folders that no radiation type reads (kept on Zenodo as optional extras)."""
+    manifest = manifest or P.load_ritracks_manifest()
+    used = set().union(*preset_energies().values())
+    return [name for name in manifest["full_energies"] if name not in used]
+
+
+def missing_by_radiation_type():
+    """{radType: [missing folders]} for all four radiation types ([] means it can run)."""
+    missing = {"Gamma": []}
+    for radType, energies in preset_energies().items():
+        missing[radType] = missing_ritracks_energies(energies)
+    return missing
+
+
 # `ammper data pull <target>` shortcut for each run type that needs extra folders.
 PULL_TARGETS = {"GCRSim": "gcrsim", "Deep Space": "deep-space"}
 

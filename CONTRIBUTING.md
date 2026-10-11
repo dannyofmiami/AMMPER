@@ -55,17 +55,27 @@ df = pd.read_csv(P.ab_experimental("AlamarblueRawdataWTKGy.csv"))
 which is a thin backward-compatible shim over `ammper.paths` — new code
 inside `src/ammper/` should use the `from ammper import paths` form.)
 
-## RITRACKS data (150 MeV tutorial folder vs. the Zenodo dataset)
+## RITRACKS data (what a clone carries vs. the Zenodo dataset)
 
 The full RITRACKS dataset (49 proton-energy folders, ~3.8GB on disk) is published on Zenodo,
 concept DOI [10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521) (always the latest
 version; cite this), pinned here to version `10.5281/zenodo.22992522`. The record holds one zip per
-energy (`<energy>.zip`, containing a single top-level `<energy>/` folder), ~1.3GB in total. Only the
-150 MeV Proton folder (`src/ammper/data/radiation_input/ritracks/150/`, ~11MB, bundled in the package) is needed for 150 MeV Proton and
-Gamma; GCRSim needs 14 folders (~119MB download) and Deep Space 10 (~193MB). Folders you download
-land in `data/radiation_input/ritracks/` in a clone (or `$AMMPER_HOME/data/...` in an install), never
-in the package. Until the planned history rewrite, the other 48 folders are still tracked under
-`data/radiation_input/ritracks/`; do not edit or remove them.
+energy (`<energy>.zip`, containing a single top-level `<energy>/` folder), ~1.3GB in total.
+
+Which folders a radiation type reads is derived from the fluence tables (`ammper.data_check`):
+150 MeV Proton reads `150`, GCRSim 14 folders, Deep Space 10, Gamma none; together that is **24
+folders (~0.9GB on disk, ~300MB in the git pack)**. **The repository carries exactly those 24**
+(`150` inside the package at `src/ammper/data/radiation_input/ritracks/150/`, the other 23 under
+`data/radiation_input/ritracks/`), so a plain `git clone` can run every radiation type offline.
+`tests/test_data_check.py::test_every_radiation_type_runs_from_a_plain_clone_without_downloading_anything`
+guards this. The other 25 folders (~1GB) are read by nothing today (only the never-loaded 0.2-month Deep Space
+table references them) and live on Zenodo only; `ammper data pull` fetches whatever is missing and
+`ammper data status` lists what each folder is for. If a new preset starts reading another folder, add that
+folder to the repo (and expect the test above to tell you).
+
+A pip-installed copy bundles only `150`; the rest are downloaded on demand into `$AMMPER_HOME`
+(default `~/ammper`). Downloaded folders in a clone land in `data/radiation_input/ritracks/`, which
+`.gitignore` ignores (the 23 repo-carried folders there are tracked, so the ignore does not affect them).
 
 `src/ammper/data/radiation_input/MANIFEST.json` is the source of truth: `zenodo_doi` (pinned version),
 `zenodo_concept_doi`, `zenodo_record_id`, the folder lists, and a `files` block with each zip's
@@ -77,8 +87,6 @@ If the Zenodo deposit is ever re-published (a new version), regenerate the `file
 fields in `MANIFEST.json`, e.g. from the record's API (`https://zenodo.org/api/records/<id>`) plus a
 sha256 of each downloaded zip, then re-run the tests. Nothing else needs to change. Keep macOS junk
 (`.DS_Store`) out of the zips; `ammper data pull` skips it, but it should not be uploaded.
-Shrinking `.git` itself (rewriting history to drop the old data blobs, which also live under the old
-`radiationData/` path) is a separate step, not yet done.
 
 ## Packaging: what ships inside the package
 

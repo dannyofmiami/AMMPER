@@ -92,23 +92,24 @@ finishes.
 
 ### RITRACKS radiation data
 
-Most runs need very little radiation-track data. The full RITRACKS dataset (49 proton-energy
-folders, about 3.8 GB on disk) is published on Zenodo
-([doi:10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521)) as one small zip per energy,
-and AMMPER downloads only the folders a run needs:
+**A normal `git clone` already contains everything the four radiation types need**, so every
+preset in the CLI and the GUI works offline, with no flags and no downloads:
 
-| Run | RITRACKS folders needed | Download |
-|---|---|---|
-| 150 MeV Proton (any dose, either cell type, either ROS model) | 1 (`150`) | 4 MB |
-| Gamma | none | none |
-| NSRL GCRSim | 14 | about 119 MB |
-| Deep Space | 10 | about 193 MB |
+| Radiation type | RITRACKS folders read | In a clone | In a pip install |
+|---|---|---|---|
+| 150 MeV Proton (any dose, either cell type, either ROS model) | 1 (`150`) | included | included |
+| Gamma | none | n/a | n/a |
+| NSRL GCRSim | 14 | included | downloaded on first use (about 119 MB) |
+| Deep Space | 10 | included | downloaded on first use (about 193 MB) |
 
-If you pick GCRSim or Deep Space and those folders are not on your machine, `ammper run` and the GUI
-tell you exactly which are missing and offer to download them (a few minutes, once). You can also
-fetch them yourself: `ammper data pull gcrsim`, `ammper data pull deep-space`, or `ammper data pull`
-for everything (about 1.3 GB). `ammper data status` shows what you have, and every download is
-checked against the size and SHA-256 recorded in `src/ammper/data/radiation_input/MANIFEST.json`.
+The full RITRACKS dataset has 49 proton-energy folders (about 3.8 GB). The other 25 are not read by any
+radiation type today, so they are not in the repository; they are published on Zenodo
+([doi:10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521), one small zip per energy, about
+1 GB for those 25) and `ammper data pull` fetches whatever is missing. A pip-installed copy ships only the
+`150` folder and offers to download the others when you pick GCRSim or Deep Space (`ammper data pull
+gcrsim` or `deep-space` do it directly). `ammper data status` shows what you have and what each folder is
+for, and every download is checked against the size and SHA-256 recorded in
+`src/ammper/data/radiation_input/MANIFEST.json`.
 
 ## Features
 
