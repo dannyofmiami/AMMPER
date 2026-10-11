@@ -21,3 +21,13 @@ results/
 
 # Editor settings
 .vscode/
+
+# Editor / IDE leftovers (swap files, backups, Qt Creator per-user session files)
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.pyproject.user
+*.pro.user
+.idea/
