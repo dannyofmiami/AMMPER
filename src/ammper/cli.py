@@ -302,7 +302,10 @@ def cmd_data_status(args):
             used_by = "bundled in the package; " + ", ".join(users)
         else:
             used_by = ", ".join(users) if users else "optional: no radiation type reads it"
-        _check(console, table, name, results[name], used_by)
+        if not users and not results[name]:
+            table.add_row("[dim]·[/dim]", name, f"[dim]{used_by}[/dim]")   # optional: not a problem
+        else:
+            _check(console, table, name, results[name], used_by)
     console.print(table)
 
     present, total = sum(results.values()), len(results)

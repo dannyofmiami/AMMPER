@@ -274,6 +274,24 @@ def test_data_status_reports_counts_and_the_pull_hint(monkeypatch, capsys):
     assert "Deep Space cannot run yet: Run `ammper data pull deep-space`" in out
 
 
+def test_data_status_marks_missing_optional_folders_neutrally(monkeypatch, capsys):
+    monkeypatch.setattr(
+        cli.P, "load_ritracks_manifest",
+        lambda: {"tutorial_energies": ["150"], "full_energies": ["150", "7.65"],
+                 "files": {"150": {"size": 4_000_000}, "7.65": {"size": 9_000_000}}})
+    monkeypatch.setattr(cli.data_check, "required_ritracks_energies",
+                        lambda radType: {"150"} if radType == "150 MeV Proton" else set())
+    monkeypatch.setattr(cli.data_fetch, "status", lambda: {"150": True, "7.65": False})
+    monkeypatch.setattr(cli.data_check, "missing_ritracks_energies", lambda names: [])
+
+    cli.main(["data", "status"])
+    out = capsys.readouterr().out
+
+    row = next(line for line in out.splitlines() if "7.65" in line)
+    assert "·" in row and "x" not in row.split("7.65")[0]
+    assert "optional: no radiation type reads it" in row
+
+
 def test_data_pull_reports_dataset_not_published_cleanly(monkeypatch, capsys):
     def boom(console, targets=None, force=False):
         raise cli.data_fetch.DatasetNotPublishedError("not published yet")
