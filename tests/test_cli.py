@@ -3,6 +3,8 @@ Adding Tests to AMMPER project
 @author: dannyofmiami
 """
 
+import os
+
 import pytest
 
 from ammper import cli
@@ -90,19 +92,26 @@ def test_run_launches_the_interactive_cli(monkeypatch):
     assert calls == [("ammper.AMMPERCLI", ["AMMPERCLI.py"])]
 
 
-def test_gui_launches_via_runpy_run_path(monkeypatch):
+def test_gui_launches_the_packaged_gui_module(monkeypatch):
     calls = []
     monkeypatch.setattr(
-        cli.runpy, "run_path", lambda path, run_name: calls.append((path, run_name))
+        cli.runpy, "run_module",
+        lambda name, run_name, alter_sys=False: calls.append((name, run_name, alter_sys)),
     )
 
     exit_code = cli.main(["gui"])
 
     assert exit_code == 0
-    assert len(calls) == 1
-    path, run_name = calls[0]
-    assert path.endswith("gui/AMMPERGUI.py") or path.endswith("gui\\AMMPERGUI.py")
-    assert run_name == "__main__"
+    # the GUI is a module inside the package, so it runs from a clone and from an installed wheel
+    assert calls == [("ammper.gui.AMMPERGUI", "__main__", True)]
+
+
+def test_the_gui_script_and_its_assets_ship_inside_the_package():
+    from ammper import paths
+
+    assert os.path.isfile(os.path.join(paths.GUI_DIR, "AMMPERGUI.py"))
+    assert os.path.isfile(os.path.join(paths.GUI_DIR, "fonts", "IBMPlexSans", "IBMPlexSans-Regular.ttf"))
+    assert os.path.isfile(os.path.join(paths.GUI_DIR, "images", "AMMPER_Logo1.PNG"))
 
 
 def test_uncaught_exception_is_reported_and_returns_1(monkeypatch, capsys):

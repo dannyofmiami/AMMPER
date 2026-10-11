@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -34,8 +34,15 @@ dev = [
 ammper = "ammper.cli:main"
 
 [tool.setuptools]
-packages = ["ammper"]
 package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Read-only files the app needs at run time ship inside the package: fluence tables, apoptosis
+# data, the Zenodo dataset manifest, the 150 MeV RITRACKS folder, and the GUI's fonts and images.
+[tool.setuptools.package-data]
+ammper = ["data/**/*", "gui/fonts/**/*", "gui/images/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

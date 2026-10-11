@@ -8,7 +8,6 @@ Qt's dialogs are replaced with stand-ins so the logic runs without a display.
 """
 
 import importlib
-import os
 import types
 
 import pytest
@@ -48,8 +47,7 @@ class _Progress:
 def gui(monkeypatch):
     pytest.importorskip("PyQt5")
     monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
-    monkeypatch.syspath_prepend(os.path.join(os.path.dirname(__file__), "..", "gui"))
-    module = importlib.import_module("AMMPERGUI")
+    module = importlib.import_module("ammper.gui.AMMPERGUI")
     monkeypatch.setattr(module, "QMessageBox", _Box)
     monkeypatch.setattr(module, "QProgressDialog", _Progress)
     monkeypatch.setattr(module.QApplication, "processEvents", staticmethod(lambda *a: None))

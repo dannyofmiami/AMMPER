@@ -16,6 +16,17 @@ to this file's own location rather than the process working directory:
     for root, dirs, files in os.walk(P.bulk_aB("WT_Basic_0")):
         ...
 
+Two layouts, one API
+--------------------
+* **In a clone** (``pip install -e .`` from a checkout): everything is under the repository root,
+  exactly as before. Downloads and results go in the repo (``data/radiation_input/ritracks/``,
+  ``results/``).
+* **Installed** (a wheel, ``pip install .``): the read-only files the app needs ship *inside* the
+  package (``ammper/data``: fluence tables, apoptosis data, the dataset manifest and the 150 MeV
+  RITRACKS folder; ``ammper/gui``: the GUI, fonts and images). Anything the app writes or
+  downloads goes to a user-writable folder: ``$AMMPER_HOME`` if set, else ``~/ammper``
+  (``~/ammper/results``, ``~/ammper/data/radiation_input/ritracks``, ...).
+
 OLD -> NEW path map:
     abFinalPlots/                    -> data/experimental/alamarblue/
     aBGAMMA/                         -> data/experimental/alamarblue_gamma/
@@ -34,19 +45,39 @@ import json
 import os
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PKG_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(os.path.dirname(PKG_DIR))
 
-SRC = os.path.join(ROOT, "src")
-AMMPER_PKG = os.path.join(SRC, "ammper")
+#: True when running from a checkout of the repository (including ``pip install -e .``).
+IN_CLONE = (os.path.isfile(os.path.join(_REPO_ROOT, "pyproject.toml"))
+            and os.path.isdir(os.path.join(_REPO_ROOT, "analysis")))
+
+#: The user-writable root: the repo in a clone, else $AMMPER_HOME or ~/ammper.
+#: (Named ROOT for backward compatibility: in a clone it is the repository root, as before.)
+if IN_CLONE:
+    ROOT = _REPO_ROOT
+else:
+    ROOT = os.path.abspath(os.path.expanduser(os.environ.get("AMMPER_HOME") or "~/ammper"))
+
+SRC = os.path.dirname(PKG_DIR)
+AMMPER_PKG = PKG_DIR
+
+#: Read-only files that ship inside the package (same in a clone and in an installed wheel).
+BUNDLED_DATA = os.path.join(PKG_DIR, "data")
+GUI_DIR = os.path.join(PKG_DIR, "gui")
 
 DATA = os.path.join(ROOT, "data")
-EXPERIMENTAL = os.path.join(DATA, "experimental")
+EXPERIMENTAL = os.path.join(DATA, "experimental")                 # manuscript analysis inputs (clone only)
 AB_EXPERIMENTAL = os.path.join(EXPERIMENTAL, "alamarblue")
 AB_GAMMA_EXPERIMENTAL = os.path.join(EXPERIMENTAL, "alamarblue_gamma")
 BIOSENTINEL = os.path.join(EXPERIMENTAL, "biosentinel")
+
+#: Downloaded RITRACKS folders (writable). The 150 MeV tutorial folder ships bundled instead.
 RADIATION_INPUT = os.path.join(DATA, "radiation_input", "ritracks")
-FLUENCE = os.path.join(DATA, "fluence")
-RITRACKS_MANIFEST = os.path.join(DATA, "radiation_input", "MANIFEST.json")
+BUNDLED_RITRACKS = os.path.join(BUNDLED_DATA, "radiation_input", "ritracks")
+FLUENCE = os.path.join(BUNDLED_DATA, "fluence")
+APOPTOSIS_DATA = os.path.join(BUNDLED_DATA, "experimental", "Apoptosis_Data.txt")
+RITRACKS_MANIFEST = os.path.join(BUNDLED_DATA, "radiation_input", "MANIFEST.json")
 
 RESULTS = os.path.join(ROOT, "results")
 BULK_AB = os.path.join(RESULTS, "bulk_aB")
@@ -77,8 +108,22 @@ def biosentinel(*parts):
 
 
 def radiation_input(*parts):
-    """RITRACKS-generated proton track data, keyed by proton energy."""
+    """RITRACKS-generated proton track data, keyed by proton energy.
+
+    Looks in the writable download folder first, then in the data bundled with the package
+    (the 150 MeV tutorial folder), and returns the first that exists. If neither has it, the
+    writable path is returned (that is where ``ammper data pull`` would put it).
+    """
+    for root in (RADIATION_INPUT, BUNDLED_RITRACKS):
+        candidate = _join(root, *parts)
+        if parts and os.path.exists(candidate):
+            return candidate
     return _join(RADIATION_INPUT, *parts)
+
+
+def apoptosis_data():
+    """The apoptosis dose-response table read by the ROS damage model."""
+    return APOPTOSIS_DATA
 
 
 def fluence(*parts):
@@ -88,8 +133,8 @@ def fluence(*parts):
 
 def load_ritracks_manifest():
     """The RITRACKS dataset manifest: every energy folder that exists in
-    the full (Zenodo) dataset, which ones ship in this repo as the tutorial
-    subset, and the pinned Zenodo DOI/checksum for the rest. See CONTRIBUTING.md."""
+    the full (Zenodo) dataset, which one ships with the package as the tutorial
+    subset, and the pinned Zenodo record plus per-folder size/checksum. See CONTRIBUTING.md."""
     with open(RITRACKS_MANIFEST) as fh:
         return json.load(fh)
 
@@ -123,6 +168,12 @@ def add_src_to_path():
     for path in (SRC, AMMPER_PKG):
         if path not in sys.path:
             sys.path.insert(0, path)
+
+
+def ensure_writable_home():
+    """Create the user-writable root (a no-op in a clone). Returns it."""
+    os.makedirs(ROOT, exist_ok=True)
+    return ROOT
 
 
 add_src_to_path()

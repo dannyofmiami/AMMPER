@@ -31,3 +31,12 @@ results/
 *.pyproject.user
 *.pro.user
 .idea/
+
+# Build and coverage output
+build/
+dist/
+.coverage
+htmlcov/
+
+# RITRACKS folders downloaded with `ammper data pull` in a clone (the 150 MeV folder ships in the package)
+data/radiation_input/ritracks/

@@ -435,12 +435,10 @@ class Cell:
                 #     print('No ROS damage')
         
         #interpolated data based on data points
-        # Moved to data/experimental/ in the Aug 2026 reorganization; resolve
-        # relative to the repository root rather than the working directory.
-        import os as _os
-        _repo = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-        apopDat = np.genfromtxt(_os.path.join(_repo, 'data', 'experimental',
-                                              'Apoptosis_Data.txt'), skip_header=1)
+        # The table ships inside the package (ammper/data/experimental/); resolved through
+        # ammper.paths so it is found in a clone and in an installed wheel alike.
+        from ammper import paths as _P
+        apopDat = np.genfromtxt(_P.apoptosis_data(), skip_header=1)
         
         Avogadro = 6.022e23
         H2O2_concentration = round(H2O2/(Avogadro*0.001*27),1)
@@ -543,12 +541,10 @@ class Cell:
         # .3 mM H2O2 -> 20% apoptotic death
         
         #interpolated data based on data points
-        # Moved to data/experimental/ in the Aug 2026 reorganization; resolve
-        # relative to the repository root rather than the working directory.
-        import os as _os
-        _repo = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-        apopDat = np.genfromtxt(_os.path.join(_repo, 'data', 'experimental',
-                                              'Apoptosis_Data.txt'), skip_header=1)
+        # The table ships inside the package (ammper/data/experimental/); resolved through
+        # ammper.paths so it is found in a clone and in an installed wheel alike.
+        from ammper import paths as _P
+        apopDat = np.genfromtxt(_P.apoptosis_data(), skip_header=1)
         
         Avogadro = 6.022e23
         H2O2_concentration = round(H2O2/(Avogadro*0.001*27),1)

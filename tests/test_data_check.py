@@ -16,6 +16,7 @@ def _folder_with_data(path):
 
 def test_missing_ritracks_energies_reports_absent_folders(tmp_path, monkeypatch):
     monkeypatch.setattr(paths, "RADIATION_INPUT", str(tmp_path))
+    monkeypatch.setattr(paths, "BUNDLED_RITRACKS", str(tmp_path / "no-bundled-data"))
     _folder_with_data(tmp_path / "150")
 
     missing = data_check.missing_ritracks_energies(["150", "20", "23"])
@@ -25,6 +26,7 @@ def test_missing_ritracks_energies_reports_absent_folders(tmp_path, monkeypatch)
 
 def test_an_empty_folder_counts_as_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(paths, "RADIATION_INPUT", str(tmp_path))
+    monkeypatch.setattr(paths, "BUNDLED_RITRACKS", str(tmp_path / "no-bundled-data"))
     (tmp_path / "20").mkdir()          # e.g. left by an interrupted manual unzip
 
     assert data_check.missing_ritracks_energies(["20"]) == ["20"]
@@ -32,6 +34,7 @@ def test_an_empty_folder_counts_as_missing(tmp_path, monkeypatch):
 
 def test_missing_ritracks_energies_empty_when_all_present(tmp_path, monkeypatch):
     monkeypatch.setattr(paths, "RADIATION_INPUT", str(tmp_path))
+    monkeypatch.setattr(paths, "BUNDLED_RITRACKS", str(tmp_path / "no-bundled-data"))
     _folder_with_data(tmp_path / "150")
 
     assert data_check.missing_ritracks_energies(["150"]) == []
@@ -66,6 +69,7 @@ def test_check_ritracks_available_passes_for_gamma():
 def test_check_ritracks_available_raises_for_gcrsim_without_full_dataset(tmp_path, monkeypatch):
     # simulate a trimmed clone (tutorial subset only) regardless of what is on this machine
     monkeypatch.setattr(paths, "RADIATION_INPUT", str(tmp_path))
+    monkeypatch.setattr(paths, "BUNDLED_RITRACKS", str(tmp_path / "no-bundled-data"))
     _folder_with_data(tmp_path / "150")
     with pytest.raises(data_check.MissingRadiationDataError, match="GCRSim") as excinfo:
         data_check.check_ritracks_available("GCRSim")
@@ -77,6 +81,7 @@ def test_check_ritracks_available_raises_for_gcrsim_without_full_dataset(tmp_pat
 def test_check_ritracks_available_passes_for_gcrsim_when_the_full_dataset_is_present(
         tmp_path, monkeypatch):
     monkeypatch.setattr(paths, "RADIATION_INPUT", str(tmp_path))
+    monkeypatch.setattr(paths, "BUNDLED_RITRACKS", str(tmp_path / "no-bundled-data"))
     for energy in data_check.required_ritracks_energies("GCRSim"):
         _folder_with_data(tmp_path / energy)
     data_check.check_ritracks_available("GCRSim")
