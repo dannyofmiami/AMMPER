@@ -122,29 +122,20 @@ def cmd_gui(args):
     console = _console()
     _print_banner(console)
 
-    gui_dir = os.path.join(P.ROOT, "gui")
-    gui_script = os.path.join(gui_dir, "AMMPERGUI.py")
+    # The GUI ships inside the package (ammper/gui), with its fonts and images, so this works from
+    # a clone and from an installed wheel, from any working directory.
+    gui_script = os.path.join(P.GUI_DIR, "AMMPERGUI.py")
     if not os.path.isfile(gui_script):
         console.print(f"[bold red][x] GUI script not found at {gui_script}[/bold red]")
         return 1
 
-    # @TODO Dir: the GUI loads its images from "images/..." and  writes results to "Results/", both relative to the cwd Fix by resolving from P.ROOT (or chdir here).
     console.print("[cyan]Launching AMMPER GUI...[/cyan]")
     old_argv = sys.argv
     sys.argv = [gui_script]
-    # `python gui/AMMPERGUI.py` would put gui/ on sys.path automatically (the
-    # interpreter does this for the script it's directly given); runpy.run_path
-    # does not, so AMMPERGUI.py's bare `from vgui_form import ...` would
-    # otherwise fail with ModuleNotFoundError.
-    path_inserted = gui_dir not in sys.path
-    if path_inserted:
-        sys.path.insert(0, gui_dir)
     try:
-        runpy.run_path(gui_script, run_name="__main__")
+        runpy.run_module("ammper.gui.AMMPERGUI", run_name="__main__", alter_sys=True)
     finally:
         sys.argv = old_argv
-        if path_inserted and gui_dir in sys.path:
-            sys.path.remove(gui_dir)
     return 0
 
 
@@ -216,11 +207,13 @@ def cmd_setup(args):
             detail = str(exc)
         all_ok &= _check(console, table, f"dependency: {module_name}", ok, detail)
 
-    data_dirs = {
-        "alamarBlue experimental data": P.AB_EXPERIMENTAL,
-        "BioSentinel experimental data": P.BIOSENTINEL,
-        "fluence tables": P.FLUENCE,
-    }
+    data_dirs = {"fluence tables": P.FLUENCE}
+    if P.IN_CLONE:
+        # manuscript-analysis inputs: only present in a clone of the repository
+        data_dirs.update({
+            "alamarBlue experimental data": P.AB_EXPERIMENTAL,
+            "BioSentinel experimental data": P.BIOSENTINEL,
+        })
     for label, path in data_dirs.items():
         exists = os.path.isdir(path) and bool(os.listdir(path))
         all_ok &= _check(console, table, label, exists, path)
@@ -248,13 +241,14 @@ def cmd_setup(args):
     )
 
     try:
+        home = P.ensure_writable_home()
         figures_dir = P.figures()  # creates FIGURES/ itself if missing
-        writable = os.access(figures_dir, os.W_OK)
-        detail = figures_dir
+        writable = os.access(home, os.W_OK) and os.access(figures_dir, os.W_OK)
+        detail = home + ("  (this clone)" if P.IN_CLONE else "  (set AMMPER_HOME to change)")
     except OSError as exc:
         writable = False
         detail = str(exc)
-    all_ok &= _check(console, table, "figures/ output directory is writable", writable, detail)
+    all_ok &= _check(console, table, "results and downloads folder is writable", writable, detail)
 
     console.print(table)
 

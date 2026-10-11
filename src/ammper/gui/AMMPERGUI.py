@@ -7,9 +7,8 @@ Created by Madeline Marous, in coordination with original code created by Amrita
 Review README and Credits for more information.
 
 """
-import os as _os, sys as _sys
-_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-import ammper_paths as P  # noqa: E402  (resolves data/ and results/ paths)
+import os as _os
+from ammper import paths as P  # resolves bundled assets and the writable results folder
 # GUI modules
 import sys
 import subprocess
@@ -19,8 +18,8 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QShortcut, QPushButton, QFil
                              QProgressDialog)
 from PyQt5.QtGui import QPixmap, QIcon, QFontDatabase, QKeySequence
 from PyQt5.QtCore import Qt, QRect
-from vgui_form import Ui_Widget # AMMPER interface
-from gui.movieMaker import movie_maker as mm
+from ammper.gui.vgui_form import Ui_Widget # AMMPER interface
+from ammper.gui.movieMaker import movie_maker as mm
 
 # AMMPER modules
 import numpy as np
@@ -481,7 +480,7 @@ class Widget(QWidget):
         if useCustomPath:
             resultsFolder = self.path.rstrip("/\\") + "/"
         else:
-            resultsFolder = r"Results/"
+            resultsFolder = os.path.join(P.single_runs(), "")      # default: <results>/single_runs/
         #currPath = os.path.dirname("AMMPER")
         allResults_path = os.path.join(resultsFolder)
         self.currResult_path = os.path.join(allResults_path,self.resultsName)
@@ -1050,7 +1049,7 @@ if __name__ == "__main__":
     app = QApplication([])
     # The .ui-generated forms reference "IBM Plex Sans" (an open-source
     # replacement for "Franklin Gothic Medium/Book", which isn't installed
-    _fonts_dir = _os.path.join(P.ROOT, "gui", "fonts", "IBMPlexSans")
+    _fonts_dir = _os.path.join(P.GUI_DIR, "fonts", "IBMPlexSans")
     for _font_file in ("IBMPlexSans-Regular.ttf", "IBMPlexSans-Medium.ttf",
                        "IBMPlexSans-Italic.ttf", "IBMPlexSans-MediumItalic.ttf"):
         QFontDatabase.addApplicationFont(_os.path.join(_fonts_dir, _font_file))
@@ -1058,7 +1057,7 @@ if __name__ == "__main__":
     app.setApplicationName("AMMPER")
     app.setApplicationDisplayName("AMMPER")
     app.setOrganizationName("NASA AMMPER")
-    app.setWindowIcon(QIcon(_os.path.join(P.ROOT, "images", "ammperbitlogo.ico")))
+    app.setWindowIcon(QIcon(_os.path.join(P.GUI_DIR, "images", "ammperbitlogo.ico")))
     widget = Widget()
     widget.show()
     sys.exit(app.exec())

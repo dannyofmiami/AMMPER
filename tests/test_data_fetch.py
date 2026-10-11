@@ -43,6 +43,7 @@ def zenodo(tmp_path, monkeypatch):
     root = tmp_path / "ritracks"
     root.mkdir()
     monkeypatch.setattr(paths, "RADIATION_INPUT", str(root))
+    monkeypatch.setattr(paths, "BUNDLED_RITRACKS", str(tmp_path / "no-bundled-data"))
     monkeypatch.setattr(paths, "load_ritracks_manifest", lambda: manifest)
     monkeypatch.setattr(data_fetch.time, "sleep", lambda s: None)
 

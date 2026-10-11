@@ -6,9 +6,8 @@ edited by Madeline Marous
 & @dannyofmiami
 """
 
-import os as _os, sys as _sys
-_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-import ammper_paths as P  # noqa: E402  (resolves data/ and results/ paths)
+import os as _os
+from ammper import paths as P  # the videos are written under the writable root
 
 import os
 import moviepy.video.io.ImageSequenceClip

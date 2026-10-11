@@ -138,7 +138,7 @@ if radType == "150 MeV Proton":
 # results folder name with the time that the simulation completed.
 resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
 # determine path that all results will be written to
-resultsFolder = "Results/"
+resultsFolder = os.path.join(P.single_runs(), "")   # <results>/single_runs/, from any folder
 currPath = os.path.dirname("AMMPER")
 allResults_path = os.path.join(currPath,resultsFolder)
 currResult_path = os.path.join(allResults_path,resultsName)

@@ -64,7 +64,9 @@ pip install --upgrade pip setuptools wheel
 pip install -e .
 ```
 
-That installs the `ammper` command:
+That installs the `ammper` command. You can also install a built wheel or source archive without
+cloning (`pip install ammper-2.0-py3-none-any.whl`): the data and GUI the app needs ship inside the
+package, so `ammper setup`, `ammper quickstart` and `ammper gui` work from any folder.
 
 | Command | What it does |
 |---|---|
@@ -74,7 +76,7 @@ That installs the `ammper` command:
 | `ammper gui` | Opens the desktop GUI |
 | `ammper data status` | Shows which RITRACKS radiation-track folders are on this machine |
 | `ammper data verify` | Re-checks those folders against the dataset manifest |
-| `ammper data pull` | Downloads the full RITRACKS dataset from Zenodo (works once the deposit is published; until then it says so) |
+| `ammper data pull` | Downloads RITRACKS folders from Zenodo: everything, or just what a run needs (`gcrsim`, `deep-space`) |
 | `ammper` | With no arguments, opens a guided menu that picks one of the above |
 | `ammper --help` | Everything above, plus options |
 
@@ -83,9 +85,10 @@ output to `results/bulk_aB/quickstart/` and prints the exact path when it
 finishes.
 
 > [!TIP]
-> Run `ammper run` and `ammper gui` from the repository folder. Both save
-> results to a `Results/` folder relative to where you launch them, and the
-> GUI loads its images the same way.
+> You can launch `ammper run` and `ammper gui` from any folder. In a clone, results go to
+> `results/` inside the repository (interactive runs: `results/single_runs/`); in a normal
+> install they go to `~/ammper/results/`. Set `AMMPER_HOME` to put them (and downloaded
+> radiation data) somewhere else.
 
 ### RITRACKS radiation data
 
@@ -105,7 +108,7 @@ If you pick GCRSim or Deep Space and those folders are not on your machine, `amm
 tell you exactly which are missing and offer to download them (a few minutes, once). You can also
 fetch them yourself: `ammper data pull gcrsim`, `ammper data pull deep-space`, or `ammper data pull`
 for everything (about 1.3 GB). `ammper data status` shows what you have, and every download is
-checked against the size and SHA-256 recorded in `data/radiation_input/MANIFEST.json`.
+checked against the size and SHA-256 recorded in `src/ammper/data/radiation_input/MANIFEST.json`.
 
 ## Features
 
@@ -226,11 +229,12 @@ src/ammper/            the simulation (installed as the `ammper` package)
   GammaRadGen.py         gamma radiation events
   cellPlot*.py           per-generation 3D plots
   paths.py               path resolution
-gui/                   desktop GUI (PyQt5), fonts, and images
+  gui/                   desktop GUI (PyQt5) with its fonts and images (`ammper gui`)
+  data/                  read-only data that ships with the package: fluence tables, apoptosis data,
+                         the Zenodo MANIFEST.json and the 150 MeV RITRACKS folder
 data/
-  radiation_input/       RITRACKS track data by proton energy, plus MANIFEST.json for the Zenodo copy
-  fluence/               GCRSim and deep-space fluence tables
-  experimental/          alamarBlue and BioSentinel measurements
+  radiation_input/       RITRACKS folders you download with `ammper data pull` (in a clone)
+  experimental/          alamarBlue and BioSentinel measurements (manuscript analysis inputs)
 analysis/              alamarBlue fitting, growth curves, ROS and gamma analysis
 revisions_2026/        manuscript revision code and figures
 results/               simulation output

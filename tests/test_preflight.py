@@ -7,7 +7,6 @@ Machine specs are injected, so nothing here depends on the host's real RAM.
 """
 
 import importlib
-import os
 import types
 
 import pytest
@@ -190,8 +189,7 @@ class _FakeBox:
 def gui(monkeypatch):
     pytest.importorskip("PyQt5")
     monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
-    monkeypatch.syspath_prepend(os.path.join(os.path.dirname(__file__), "..", "gui"))
-    module = importlib.import_module("AMMPERGUI")
+    module = importlib.import_module("ammper.gui.AMMPERGUI")
     monkeypatch.setattr(module, "QMessageBox", _FakeBox)
     _FakeBox.shown, _FakeBox.answer = [], _FakeBox.No
     return module
