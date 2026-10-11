@@ -256,19 +256,22 @@ def test_data_status_reports_counts_and_the_pull_hint(monkeypatch, capsys):
                  "files": {"150": {"size": 4_000_000}, "20": {"size": 17_000_000},
                            "42.76": {"size": 26_000_000}}},
     )
-    monkeypatch.setattr(cli.data_check, "required_ritracks_energies",
-                        lambda radType: {"GCRSim": {"20", "150"}, "Deep Space": {"42.76"}}[radType])
+    monkeypatch.setattr(
+        cli.data_check, "required_ritracks_energies",
+        lambda radType: {"150 MeV Proton": {"150"}, "GCRSim": {"20", "150"}, "Deep Space": {"42.76"}}[radType])
     monkeypatch.setattr(cli.data_fetch, "status", lambda: {"150": True, "20": False, "42.76": False})
+    monkeypatch.setattr(cli.data_check, "missing_ritracks_energies",
+                        lambda names: sorted((n for n in names if n != "150"), key=float))
 
     exit_code = cli.main(["data", "status"])
     out = " ".join(capsys.readouterr().out.split())        # Rich wraps long lines
 
     assert exit_code == 0
     assert "1/3 RITRACKS energy folders present" in out
-    # shortcuts and sizes come from the manifest, not from hardcoded text
-    assert "`ammper data pull gcrsim` (~21 MB)" in out
-    assert "`ammper data pull deep-space` (~26 MB)" in out
-    assert "`ammper data pull` (everything, ~0.0 GB)" in out
+    # what each folder is for, and what is still blocked, with sizes from the manifest
+    assert "bundled in the package; 150 MeV Proton, GCRSim" in out
+    assert "GCRSim cannot run yet: Run `ammper data pull gcrsim` to download just the 1 missing folder(s) (~17 MB)" in out
+    assert "Deep Space cannot run yet: Run `ammper data pull deep-space`" in out
 
 
 def test_data_pull_reports_dataset_not_published_cleanly(monkeypatch, capsys):

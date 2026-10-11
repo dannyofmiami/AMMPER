@@ -38,5 +38,6 @@ dist/
 .coverage
 htmlcov/
 
-# RITRACKS folders downloaded with `ammper data pull` in a clone (the 150 MeV folder ships in the package)
+# RITRACKS folders fetched with `ammper data pull` land here in a clone. (The 23 folders the repo carries
+# for the GCRSim and Deep Space presets are tracked, so this does not affect them; 150 ships in the package.)
 data/radiation_input/ritracks/

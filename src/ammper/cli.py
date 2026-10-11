@@ -230,15 +230,15 @@ def cmd_setup(args):
         tutorial_ok, tutorial_path,
     )
 
-    full_results = data_fetch.status()
-    full_present, full_total = sum(full_results.values()), len(full_results)
-    detail = f"{full_present}/{full_total} energies present"
-    if full_present < full_total:
-        detail += " -- run `ammper data pull` for GCRSim / Deep Space"
-    _check(
-        console, table, "RITRACKS full dataset (Zenodo)",
-        full_present == full_total, detail,
-    )
+    # Informational (does not gate all_ok): can every radiation type run on this machine?
+    blocked = {radType: missing for radType, missing in data_check.missing_by_radiation_type().items()
+               if missing}
+    if blocked:
+        detail = "; ".join(f"{radType}: run `ammper data pull {data_check.PULL_TARGETS[radType]}`"
+                           for radType in blocked)
+    else:
+        detail = "all four radiation types can run"
+    _check(console, table, "RITRACKS for every radiation type", not blocked, detail)
 
     try:
         home = P.ensure_writable_home()
@@ -288,24 +288,38 @@ def cmd_data_status(args):
     _print_banner(console)
 
     manifest = P.load_ritracks_manifest()
-    tutorial = set(manifest["tutorial_energies"])
+    bundled = set(manifest["tutorial_energies"])
+    needed_by = data_check.preset_energies()
     results = data_fetch.status()
 
     table = Table(show_header=True, header_style="bold")
     table.add_column("", width=3)
     table.add_column("Energy (MeV)")
-    table.add_column("Source")
+    table.add_column("Used by")
     for name in manifest["full_energies"]:
-        source = "tutorial (bundled)" if name in tutorial else "Zenodo (full dataset)"
-        _check(console, table, name, results[name], source)
+        users = [radType for radType, energies in needed_by.items() if name in energies]
+        if name in bundled:
+            used_by = "bundled in the package; " + ", ".join(users)
+        else:
+            used_by = ", ".join(users) if users else "optional: no radiation type reads it"
+        _check(console, table, name, results[name], used_by)
     console.print(table)
 
     present, total = sum(results.values()), len(results)
     console.print(f"\n{present}/{total} RITRACKS energy folders present.")
-    if present < total:
+    blocked = {radType: missing for radType, missing in data_check.missing_by_radiation_type().items()
+               if missing}
+    if not blocked:
+        console.print("[green]All four radiation types (150 MeV Proton, GCRSim, Deep Space, "
+                      "Gamma) can run with the data on this machine.[/green]")
+    for radType, missing in blocked.items():
+        console.print(f"[yellow]{radType} cannot run yet:[/yellow] {data_check.pull_hint(radType, missing)}")
+    optional_missing = [name for name in data_check.optional_energies(manifest) if not results[name]]
+    if optional_missing:
+        megabytes = data_fetch.download_size(optional_missing, manifest) / 1e6
         console.print(
-            "[dim]150 MeV Proton and Gamma work without it. Fetch the rest from "
-            f"Zenodo: {_pull_shortcuts(manifest)}.[/dim]"
+            f"[dim]{len(optional_missing)} optional folder(s) (~{megabytes:.0f} MB) are not read by any "
+            "radiation type; `ammper data pull` fetches everything that is missing.[/dim]"
         )
     return 0
 

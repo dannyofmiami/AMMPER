@@ -1,5 +1,5 @@
 {
-  "_comment": "Source of truth for the RITRACKS dataset on Zenodo (one zip per proton energy, each with a top-level <energy>/ folder). zenodo_doi is the pinned version; cite zenodo_concept_doi (all versions). 'ammper data pull' downloads from this record and checks size and sha256 before extracting. See CONTRIBUTING.md.",
+  "_comment": "Source of truth for the RITRACKS dataset on Zenodo (one zip per proton energy, each with a top-level <energy>/ folder). zenodo_doi is the pinned version; cite zenodo_concept_doi (all versions). tutorial_energies are the folders bundled inside the package; a git clone also carries every other folder that a radiation type reads, and 'ammper data pull' fetches whatever is missing, checking size and sha256 before extracting. See CONTRIBUTING.md.",
   "zenodo_doi": "10.5281/zenodo.22992522",
   "zenodo_concept_doi": "10.5281/zenodo.22992521",
   "zenodo_record_id": 22992522,

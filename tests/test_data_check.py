@@ -85,3 +85,36 @@ def test_check_ritracks_available_passes_for_gcrsim_when_the_full_dataset_is_pre
     for energy in data_check.required_ritracks_energies("GCRSim"):
         _folder_with_data(tmp_path / energy)
     data_check.check_ritracks_available("GCRSim")
+
+
+# ---- every radiation type, from a plain clone ----------------------------------------------------
+
+def test_optional_folders_are_exactly_the_ones_no_radiation_type_reads(monkeypatch):
+    monkeypatch.setattr(paths, "load_ritracks_manifest",
+                        lambda: {"full_energies": ["150", "20", "42.76", "7.65", "357.1"]})
+    monkeypatch.setattr(data_check, "required_ritracks_energies",
+                        lambda radType: {"150 MeV Proton": {"150"}, "GCRSim": {"20", "150"},
+                                         "Deep Space": {"42.76"}}.get(radType, set()))
+
+    assert data_check.optional_energies() == ["7.65", "357.1"]
+
+
+def test_missing_by_radiation_type_flags_only_the_types_that_cannot_run(tmp_path, monkeypatch):
+    monkeypatch.setattr(paths, "RADIATION_INPUT", str(tmp_path))
+    monkeypatch.setattr(paths, "BUNDLED_RITRACKS", str(tmp_path / "no-bundled-data"))
+    monkeypatch.setattr(data_check, "required_ritracks_energies",
+                        lambda radType: {"150 MeV Proton": {"150"}, "GCRSim": {"20", "150"},
+                                         "Deep Space": {"42.76"}}.get(radType, set()))
+    _folder_with_data(tmp_path / "150")
+
+    assert data_check.missing_by_radiation_type() == {
+        "Gamma": [], "150 MeV Proton": [], "GCRSim": ["20"], "Deep Space": ["42.76"]}
+
+
+@pytest.mark.skipif(not paths.IN_CLONE, reason="checks what a clone of the repository ships")
+@pytest.mark.parametrize("radType", ["150 MeV Proton", "Gamma", "GCRSim", "Deep Space"])
+def test_every_radiation_type_runs_from_a_plain_clone_without_downloading_anything(radType):
+    # The guarantee behind "git clone, then it just works": the repository itself carries
+    # every RITRACKS folder that any radiation type reads. If this fails, a data folder was
+    # dropped from the repo (or a new preset started needing one) and users would hit a download.
+    data_check.check_ritracks_available(radType)
