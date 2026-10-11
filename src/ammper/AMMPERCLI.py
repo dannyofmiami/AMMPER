@@ -36,6 +36,9 @@ import numpy as np
 import random as rand
 import uuid as uuid
 from ammper.cellDefinition import Cell
+from ammper import data_fetch
+from ammper.data_check import check_ritracks_available
+from rich.console import Console
 from ammper.genTraverse_groundTesting import genTraverse_groundTesting
 from ammper.genTraverse_deepSpace import genTraverse_deepSpace
 from ammper.genROS import genROS
@@ -91,6 +94,10 @@ elif radType == 'd':
     #radGenE = 10
     N = 64 # real 64 ?
 
+# If this radType needs RITRACKS folders that aren't on disk, offer to download them now (before
+# prompting for cellType/ROSType). Declining stops with the exact `ammper data pull` command.
+if not data_fetch.ensure_available(radType, Console(), lambda q: Confirm.ask(q, default=True)):
+    check_ritracks_available(radType)
 
 cellType = Prompt.ask(
     "Please enter cell type:\n\ta)Wild Type\n\tb)rad51",

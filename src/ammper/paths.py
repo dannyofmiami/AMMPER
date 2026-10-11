@@ -30,6 +30,7 @@ OLD -> NEW path map:
 @author: dannyofmiami    
 """
 
+import json
 import os
 import sys
 
@@ -45,6 +46,7 @@ AB_GAMMA_EXPERIMENTAL = os.path.join(EXPERIMENTAL, "alamarblue_gamma")
 BIOSENTINEL = os.path.join(EXPERIMENTAL, "biosentinel")
 RADIATION_INPUT = os.path.join(DATA, "radiation_input", "ritracks")
 FLUENCE = os.path.join(DATA, "fluence")
+RITRACKS_MANIFEST = os.path.join(DATA, "radiation_input", "MANIFEST.json")
 
 RESULTS = os.path.join(ROOT, "results")
 BULK_AB = os.path.join(RESULTS, "bulk_aB")
@@ -82,6 +84,14 @@ def radiation_input(*parts):
 def fluence(*parts):
     """Deep-space and GCRSim fluence tables."""
     return _join(FLUENCE, *parts)
+
+
+def load_ritracks_manifest():
+    """The RITRACKS dataset manifest: every energy folder that exists in
+    the full (Zenodo) dataset, which ones ship in this repo as the tutorial
+    subset, and the pinned Zenodo DOI/checksum for the rest. See CONTRIBUTING.md."""
+    with open(RITRACKS_MANIFEST) as fh:
+        return json.load(fh)
 
 
 def bulk_aB(*parts):

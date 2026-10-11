@@ -72,6 +72,9 @@ That installs the `ammper` command:
 | `ammper quickstart` | Runs a short tutorial simulation (a few seconds), no questions asked |
 | `ammper run` | Runs a full simulation, asking you for radiation type, dose, cell type, and ROS model |
 | `ammper gui` | Opens the desktop GUI |
+| `ammper data status` | Shows which RITRACKS radiation-track folders are on this machine |
+| `ammper data verify` | Re-checks those folders against the dataset manifest |
+| `ammper data pull` | Downloads the full RITRACKS dataset from Zenodo (works once the deposit is published; until then it says so) |
 | `ammper` | With no arguments, opens a guided menu that picks one of the above |
 | `ammper --help` | Everything above, plus options |
 
@@ -83,6 +86,26 @@ finishes.
 > Run `ammper run` and `ammper gui` from the repository folder. Both save
 > results to a `Results/` folder relative to where you launch them, and the
 > GUI loads its images the same way.
+
+### RITRACKS radiation data
+
+Most runs need very little radiation-track data. The full RITRACKS dataset (49 proton-energy
+folders, about 3.8 GB on disk) is published on Zenodo
+([doi:10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521)) as one small zip per energy,
+and AMMPER downloads only the folders a run needs:
+
+| Run | RITRACKS folders needed | Download |
+|---|---|---|
+| 150 MeV Proton (any dose, either cell type, either ROS model) | 1 (`150`) | 4 MB |
+| Gamma | none | none |
+| NSRL GCRSim | 14 | about 119 MB |
+| Deep Space | 10 | about 193 MB |
+
+If you pick GCRSim or Deep Space and those folders are not on your machine, `ammper run` and the GUI
+tell you exactly which are missing and offer to download them (a few minutes, once). You can also
+fetch them yourself: `ammper data pull gcrsim`, `ammper data pull deep-space`, or `ammper data pull`
+for everything (about 1.3 GB). `ammper data status` shows what you have, and every download is
+checked against the size and SHA-256 recorded in `data/radiation_input/MANIFEST.json`.
 
 ## Features
 
@@ -205,7 +228,7 @@ src/ammper/            the simulation (installed as the `ammper` package)
   paths.py               path resolution
 gui/                   desktop GUI (PyQt5), fonts, and images
 data/
-  radiation_input/       RITRACKS track data, by proton energy
+  radiation_input/       RITRACKS track data by proton energy, plus MANIFEST.json for the Zenodo copy
   fluence/               GCRSim and deep-space fluence tables
   experimental/          alamarBlue and BioSentinel measurements
 analysis/              alamarBlue fitting, growth curves, ROS and gamma analysis
