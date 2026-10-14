@@ -435,8 +435,7 @@ class Cell:
                 #     print('No ROS damage')
         
         #interpolated data based on data points
-        # The table ships inside the package (ammper/data/experimental/); resolved through
-        # ammper.paths so it is found in a clone and in an installed wheel alike.
+        # table inside the package (ammper/data/experimental/); resolved
         from ammper import paths as _P
         apopDat = np.genfromtxt(_P.apoptosis_data(), skip_header=1)
         
@@ -541,8 +540,7 @@ class Cell:
         # .3 mM H2O2 -> 20% apoptotic death
         
         #interpolated data based on data points
-        # The table ships inside the package (ammper/data/experimental/); resolved through
-        # ammper.paths so it is found in a clone and in an installed wheel alike.
+        # table inside the package (ammper/data/experimental/); resolved
         from ammper import paths as _P
         apopDat = np.genfromtxt(_P.apoptosis_data(), skip_header=1)
         

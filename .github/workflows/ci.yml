@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        shell: bash  # normalizes Windows runners off PowerShell onto Git Bash
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -37,9 +37,6 @@ jobs:
       - name: Smoke test — run a real tutorial simulation end to end
         run: ammper quickstart --name "ci_smoke_${{ matrix.os }}_${{ matrix.python-version }}"
 
-  # The supported install is also a plain wheel, not just a clone: build it, install it into a clean
-  # environment *outside* the repository, and run what a new user runs. This catches any data, GUI
-  # file, font or image that is missing from the package.
   wheel-smoke:
     name: installed wheel (no clone) / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -67,7 +64,7 @@ jobs:
           python -m pip install --upgrade pip build
           python -m build --wheel --outdir dist
 
-      - name: Install it into a clean virtual environment
+      - name: Install it into a clean environment
         run: |
           python -m venv "$RUNNER_TEMP/wheelenv"
           if [ -d "$RUNNER_TEMP/wheelenv/Scripts" ]; then BIN=Scripts; else BIN=bin; fi

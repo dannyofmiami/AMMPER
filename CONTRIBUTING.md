@@ -8,13 +8,9 @@ Install it in editable mode so changes to `src/` show:
 ```bash
 python3 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install --upgrade pip       # editable installs need pip >= 21.3; many
-                                 # systems still ship an older default pip
+pip install --upgrade pip
 pip install -e ".[dev]"
 ```
-
-The `dev` extra brings in `pytest` and `ruff`. `import ammper` and
-`from ammper import paths` then work from any working directory
 
 ## Running tests
 
@@ -32,9 +28,6 @@ logic in `src/ammper/` should come with a test in `tests/` covering it.
 ruff check .
 ```
 
-`pyproject.toml`'s `[tool.ruff]` section scopes the ruleset to
-pyflakes/pycodestyle errors and import sorting (`E4`, `E7`, `E9`, `F`, `I`)
-
 ## Project layout
 
 See the "Layout" section of `README.md` for what lives where
@@ -43,7 +36,7 @@ interface, `data/` and `results/` inputs/outputs).
 
 ## Paths
 
-Never hardcode paths to `data/`, `results/`, or `figures/`. Import the path
+Don't hardcode paths to `data/`, `results/`, or `figures/`. Import the path
 helper instead:
 
 ```python
@@ -58,58 +51,14 @@ inside `src/ammper/` should use the `from ammper import paths` form.)
 ## RITRACKS data (what a clone carries vs. the Zenodo dataset)
 
 The full RITRACKS dataset (49 proton-energy folders, ~3.8GB on disk) is published on Zenodo,
-concept DOI [10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521) (always the latest
-version; cite this), pinned here to version `10.5281/zenodo.22992522`. The record holds one zip per
-energy (`<energy>.zip`, containing a single top-level `<energy>/` folder), ~1.3GB in total.
+concept DOI [10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521) (cite this).
 
-Which folders a radiation type reads is derived from the fluence tables (`ammper.data_check`):
-150 MeV Proton reads `150`, GCRSim 14 folders, Deep Space 10, Gamma none; together that is **24
-folders (~0.9GB on disk, ~300MB in the git pack)**. **The repository carries exactly those 24**
-(`150` inside the package at `src/ammper/data/radiation_input/ritracks/150/`, the other 23 under
-`data/radiation_input/ritracks/`), so a plain `git clone` can run every radiation type offline.
-`tests/test_data_check.py::test_every_radiation_type_runs_from_a_plain_clone_without_downloading_anything`
-guards this. The other 25 folders (~1GB) are read by nothing today (only the never-loaded 0.2-month Deep Space
-table references them) and live on Zenodo only; `ammper data pull` fetches whatever is missing and
-`ammper data status` lists what each folder is for. If a new preset starts reading another folder, add that
-folder to the repo (and expect the test above to tell you).
-
-A pip-installed copy bundles only `150`; the rest are downloaded on demand into `$AMMPER_HOME`
-(default `~/ammper`). Downloaded folders in a clone land in `data/radiation_input/ritracks/`, which
-`.gitignore` ignores (the 23 repo-carried folders there are tracked, so the ignore does not affect them).
-
-`src/ammper/data/radiation_input/MANIFEST.json` is the source of truth: `zenodo_doi` (pinned version),
-`zenodo_concept_doi`, `zenodo_record_id`, the folder lists, and a `files` block with each zip's
-`size`, `md5` (as Zenodo reports it) and `sha256`. `ammper data pull [gcrsim|deep-space|ENERGY...]`
-downloads from that record, checks size and sha256, and extracts atomically; `ammper run` and the GUI
-offer to run it when a run needs folders that are missing.
-
-If the Zenodo deposit is ever re-published (a new version), regenerate the `files` block and the DOI
-fields in `MANIFEST.json`, e.g. from the record's API (`https://zenodo.org/api/records/<id>`) plus a
-sha256 of each downloaded zip, then re-run the tests. Nothing else needs to change. Keep macOS junk
-(`.DS_Store`) out of the zips; `ammper data pull` skips it, but it should not be uploaded.
+Which folders a radiation type reads comes from the tables (`ammper.data_check`).
 
 ## Packaging: what ships inside the package
 
 Everything `ammper setup`, `quickstart`, `run` and `gui` need at run time lives **inside**
 `src/ammper/` so a normal install (a wheel, `pip install .`) works from any folder, not just a clone:
-
-- `src/ammper/data/`: fluence tables, apoptosis data, `radiation_input/MANIFEST.json`, and the 150 MeV
-  RITRACKS folder (read-only).
-- `src/ammper/gui/`: the GUI (`AMMPERGUI.py`, `vgui_form.py`, `movieMaker.py`) with its `fonts/` and `images/`.
-- Look files up through `ammper.paths` (`P.fluence()`, `P.radiation_input()`, `P.apoptosis_data()`,
-  `P.GUI_DIR`), never with a path computed from `__file__` or the working directory. Anything the app
-  *writes* goes under `P.ROOT` (the repo in a clone; `$AMMPER_HOME` or `~/ammper` when installed).
-- A new runtime data file must be added under `src/ammper/data/` (or `gui/`) and matched by
-  `[tool.setuptools.package-data]` in `pyproject.toml`; CI builds the wheel, installs it in a clean
-  environment and runs `ammper setup` and `ammper quickstart` to catch anything left out.
-- Manuscript-analysis inputs (`data/experimental/`, `analysis/`, `revisions_2026/`) stay in the repo and are
-  not shipped.
-
-Any change to a shared simulation entry point that touches `radType` or the
-RITRACKS read path should also be checked against `src/ammper/gui/AMMPERGUI.py` and
-`gui/AMMPERrunsGUI.py` (legacy, not constructible) — the GUI duplicates the simulation loop from
-`src/ammper/` rather than importing it, so a signature change made only in
-the scripts silently breaks the GUI. Grep the whole repo, not just `src/ammper/*.py`.
 
 ## Commits and PRs
 
