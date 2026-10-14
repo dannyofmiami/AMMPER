@@ -35,7 +35,6 @@ radiation, and you can drive it from a command line or a desktop GUI.
 ## Table of Contents
 
 - [Quick start](#quick-start)
-- [Features](#features)
 - [Screenshots](#screenshots)
   - [Desktop GUI](#desktop-gui)
   - [Command line](#command-line)
@@ -64,10 +63,6 @@ pip install --upgrade pip setuptools wheel
 pip install -e .
 ```
 
-That installs the `ammper` command. You can also install a built wheel or source archive without
-cloning (`pip install ammper-2.0-py3-none-any.whl`): the data and GUI the app needs ship inside the
-package, so `ammper setup`, `ammper quickstart` and `ammper gui` work from any folder.
-
 | Command | What it does |
 |---|---|
 | `ammper setup` | Checks that dependencies and data are in place, and warns if your machine lacks the memory for the heavier Complex ROS runs |
@@ -93,48 +88,10 @@ finishes.
 ### RITRACKS radiation data
 
 **A normal `git clone` already contains everything the four radiation types need**, so every
-preset in the CLI and the GUI works offline, with no flags and no downloads:
+preset in the CLI and the GUI works offline, with no flags and no downloads.
 
-| Radiation type | RITRACKS folders read | In a clone | In a pip install |
-|---|---|---|---|
-| 150 MeV Proton (any dose, either cell type, either ROS model) | 1 (`150`) | included | included |
-| Gamma | none | n/a | n/a |
-| NSRL GCRSim | 14 | included | downloaded on first use (about 119 MB) |
-| Deep Space | 10 | included | downloaded on first use (about 193 MB) |
-
-The full RITRACKS dataset has 49 proton-energy folders (about 3.8 GB). The other 25 are not read by any
-radiation type today, so they are not in the repository; they are published on Zenodo
-([doi:10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521), one small zip per energy, about
-1 GB for those 25) and `ammper data pull` fetches whatever is missing. A pip-installed copy ships only the
-`150` folder and offers to download the others when you pick GCRSim or Deep Space (`ammper data pull
-gcrsim` or `deep-space` do it directly). `ammper data status` shows what you have and what each folder is
-for, and every download is checked against the size and SHA-256 recorded in
-`src/ammper/data/radiation_input/MANIFEST.json`.
-
-## Features
-
-- **Agent-based**: each yeast cell is simulated individually. It moves by
-  Brownian motion, divides, takes damage, and repairs.
-- **Two strains**: wild type and *rad51*Δ, the two strains flown on BioSentinel.
-- **Four radiation environments** built from RITRACKS radiation-track data:
-
-  | Radiation type | Dose setting | When radiation is applied |
-  |---|---|---|
-  | **150 MeV Proton** | 0, 2.5, 5, 10, 20, or 30 Gy | Once, at generation 2 |
-  | **Gamma** | Fixed 1 Gy | Once (at generation 10 or 2, depending on the tool) |
-  | **NSRL GCRSim** | Fixed mixed-energy proton field | Once, at generation 2 |
-  | **Deep Space** | Fixed 0.1-month proton exposure | Spread across generations 1–14 |
-
-- **Direct and indirect damage**: single- and double-strand DNA breaks from
-  radiation tracks, plus damage from reactive oxygen species.
-- **Command line and desktop GUI**: script it, or point and click.
-- **Reproducible output**: each run saves a 3D plot per generation and a
-  `simDescription.txt` recording its settings (including dose). The
-  command-line tools also save every cell's position and health for each
-  generation. In the GUI, tick **Export data to a folder** to save that
-  file too.
-- **Analysis pipeline**: alamarBlue kinetics fitting and the scripts behind
-  the published figures (`analysis/`, `revisions_2026/`).
+The full RITRACKS dataset has 49 proton-energy folders and is published on Zenodo
+([doi:10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521)); `ammper data pull` downloads any missing data.
 
 ## Screenshots
 

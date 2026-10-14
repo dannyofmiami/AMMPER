@@ -39,8 +39,6 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
-# Read-only files the app needs at run time ship inside the package: fluence tables, apoptosis
-# data, the Zenodo dataset manifest, the 150 MeV RITRACKS folder, and the GUI's fonts and images.
 [tool.setuptools.package-data]
 ammper = ["data/**/*", "gui/fonts/**/*", "gui/images/*"]
 
@@ -53,7 +51,4 @@ target-version = "py39"
 extend-exclude = ["bin", "data", "radiationData", "images", "figures", "results", "venv"]
 
 [tool.ruff.lint]
-# Deliberately narrow: the standard pyflakes/pycodestyle-error set plus import
-# sorting. The legacy analysis/GUI scripts carry a backlog of pre-existing
-# findings under a broader ruleset; that cleanup is a separate, reviewed pass.
 select = ["E4", "E7", "E9", "F", "I"]

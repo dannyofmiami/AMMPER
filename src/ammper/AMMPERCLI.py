@@ -94,8 +94,7 @@ elif radType == 'd':
     #radGenE = 10
     N = 64 # real 64 ?
 
-# If this radType needs RITRACKS folders that aren't on disk, offer to download them now (before
-# prompting for cellType/ROSType). Declining stops with the exact `ammper data pull` command.
+# Check for RITRACKS folders that aren't on disk
 if not data_fetch.ensure_available(radType, Console(), lambda q: Confirm.ask(q, default=True)):
     check_ritracks_available(radType)
 

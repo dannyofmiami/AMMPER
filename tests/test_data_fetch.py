@@ -1,8 +1,6 @@
 """
 Tests for fetching RITRACKS folders from Zenodo (src/ammper/data_fetch.py).
 
-A fake Zenodo serves small zips built in tmp_path, so nothing here touches the network.
-
 @author: dannyofmiami
 """
 

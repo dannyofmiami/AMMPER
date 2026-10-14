@@ -27,7 +27,7 @@ def test_missing_ritracks_energies_reports_absent_folders(tmp_path, monkeypatch)
 def test_an_empty_folder_counts_as_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(paths, "RADIATION_INPUT", str(tmp_path))
     monkeypatch.setattr(paths, "BUNDLED_RITRACKS", str(tmp_path / "no-bundled-data"))
-    (tmp_path / "20").mkdir()          # e.g. left by an interrupted manual unzip
+    (tmp_path / "20").mkdir()
 
     assert data_check.missing_ritracks_energies(["20"]) == ["20"]
 
@@ -57,7 +57,7 @@ def test_required_ritracks_energies_for_gcrsim_matches_fluence_table():
 
 
 def test_check_ritracks_available_passes_for_150_mev_proton():
-    # ritracks/150/ ships in this repo's tutorial subset -- must never raise.
+    # ritracks/150/ ships in this repo's tutorial subset
     data_check.check_ritracks_available("150 MeV Proton")
 
 
@@ -87,7 +87,7 @@ def test_check_ritracks_available_passes_for_gcrsim_when_the_full_dataset_is_pre
     data_check.check_ritracks_available("GCRSim")
 
 
-# ---- every radiation type, from a plain clone ----------------------------------------------------
+# ---- every radiation type from a clone ----------------------------------------------------
 
 def test_optional_folders_are_exactly_the_ones_no_radiation_type_reads(monkeypatch):
     monkeypatch.setattr(paths, "load_ritracks_manifest",
@@ -113,8 +113,6 @@ def test_missing_by_radiation_type_flags_only_the_types_that_cannot_run(tmp_path
 
 @pytest.mark.skipif(not paths.IN_CLONE, reason="checks what a clone of the repository ships")
 @pytest.mark.parametrize("radType", ["150 MeV Proton", "Gamma", "GCRSim", "Deep Space"])
-def test_every_radiation_type_runs_from_a_plain_clone_without_downloading_anything(radType):
-    # The guarantee behind "git clone, then it just works": the repository itself carries
-    # every RITRACKS folder that any radiation type reads. If this fails, a data folder was
-    # dropped from the repo (or a new preset started needing one) and users would hit a download.
+def test_every_radiation_type_runs_from_a_clone(radType):
+    # RITRACKS Data Check
     data_check.check_ritracks_available(radType)

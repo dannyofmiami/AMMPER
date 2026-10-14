@@ -95,8 +95,7 @@ elif radType == 'd':
     #radGenE = 10
     N = 64 # real 64 ?
 
-# If this radType needs RITRACKS folders that aren't on disk, offer to download them now (before
-# prompting for cellType/ROSType). Declining stops with the exact `ammper data pull` command.
+# If this radType needs RITRACKS folders that aren't on disk, offer to download them
 if not data_fetch.ensure_available(radType, Console(), lambda q: Confirm.ask(q, default=True)):
     check_ritracks_available(radType)
 
@@ -109,8 +108,6 @@ if cellType == "a":
 elif cellType == "b":
     cellType = "rad51"
 
-# ROS model old and new, ROS Old computes eternal and static ROS free radicals, complex ROS models diffusion and time
-# mechanics.
 ROSType = Prompt.ask(
     "Please enter ROS Model: \n\ta)Basic ROS\n\tb)Complex ROS",
     choices=["a", "b"], show_choices=False,
@@ -120,8 +117,6 @@ if ROSType == "a":
 if ROSType == "b":
     ROSType = "Complex ROS"
 if ROSType == "Complex ROS":
-    # Warn, never block: Complex ROS needs ~0.74 GB of RAM per Gy and can stall or crash a small
-    # machine at higher doses. Nothing is printed unless this machine looks short of memory.
     from ammper import preflight
     _warning = preflight.complex_ros_warning(
         radType, Gy if radType == "150 MeV Proton" else 1.0)
