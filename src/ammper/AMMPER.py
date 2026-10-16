@@ -89,10 +89,8 @@ elif radType == "c":
 elif radType == 'd':
     radType = "Gamma"
     gen = 15
-    # @TODO PARAMETER Mismatch: radGen=2 here, but AMMPERCLI.py/AMMPERGUI.py/
-    # AMMPERrunsGUI.py all use radGen=10 for the identical Gamma config
+    # Gamma radiation is delivered at generation 2
     radGen = 2
-    #radGenE = 10
     N = 64 # real 64 ?
 
 # If this radType needs RITRACKS folders that aren't on disk, offer to download them
@@ -259,7 +257,7 @@ for g in range(1,gen+1):
                 energyThreshold = 20
                 for track in range(numTrav):
                     # choose a random track out of the 8 available/proton energy
-                    # @TODO TRACK RANGE: never picks Track7 (0-6 only). Full note in src/ammper/AMMPERCLI.py's Deep Space branch.
+                    # @TODO TRACK RANGE: never picks Track7 (0-6 only).
                     trackNum  = int(rand.uniform(0,7))
                     # generate traversal data for omnidirectional traversals
                     radData_trans = genTraverse_deepSpace(N,protonEnergy,trackNum,energyThreshold)

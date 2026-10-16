@@ -77,7 +77,7 @@ class Widget(QWidget):
         self.dial.valueChanged.connect(self.dialChange)
 
         # @TODO DEPRECATE THIS: this class references 10 widgets that do
-        # not exist anywhere in formgui.py's generated Ui_Widget 
+        # not exist anywhere in formgui.py's  Ui_Widget 
         self.verticalSlider = self.ui.verticalSlider
         
         self.progressBar = self.ui.progressBar
@@ -343,7 +343,7 @@ class Widget(QWidget):
                 self.sliderOn = False
                 self.radType = "Gamma"
                 self.gen = 15
-                self.radGen = 10
+                self.radGen = 2   # as in the manuscript's gamma runs; same value in every entry point
                 self.N = 64
                 self.radData = np.zeros([1,6],dtype = float)
                 self.ROSData = np.zeros([1,6],dtype = float)
@@ -631,6 +631,7 @@ class Widget(QWidget):
                         energyThreshold = 20
                         for track in range(numTrav):
                             # choose a random track out of the 8 available/proton energy
+                            # @TODO TRACK RANGE: int(rand.uniform(0,7)) gives 0-6, never Track7; should be rand.randint(0,7). Left as-is to match the manuscript (see docs/v2_engine_parity.md
                             trackNum  = int(rand.uniform(0,7))
                             # generate traversal data for omnidirectional traversals
                             radData_trans = genTraverse_deepSpace(self.N,protonEnergy,trackNum,energyThreshold)
@@ -666,6 +667,7 @@ class Widget(QWidget):
                         # parameter that allows non-damaging energy depositions to be ignored (used to speed up simulation)
                         energyThreshold = 20
                         # choose a random track out of the 8 available/proton energy
+                        # @TODO TRACK RANGE: int(rand.uniform(0,7)) gives 0-6, never Track7; should be rand.randint(0,7). Left to match the manuscript (see docs/v2_engine_parity.md); fix in 3.0.
                         trackNum = int(rand.uniform(0,7))
                         # generate traversal data for unidirectional traversals
                         radData_trans = genTraverse_groundTesting(self.N,protonEnergy,trackNum,energyThreshold,self.radType)

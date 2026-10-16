@@ -87,7 +87,6 @@ elif radType == 'd':
     radType = "Gamma"
     gen = 15
     radGen = 2
-    #radGenE = 10
     N = 64 # real 64 ?
 
 # RITRACKS data check
