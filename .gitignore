@@ -16,8 +16,13 @@ Thumbs.db
 venv/
 env/
 
-# Simulation output
+# Simulation output from `ammper run`, `ammper quickstart` and `ammper gui` in a clone
+# (data, plots and simDescription.txt; older versions wrote to Results/)
 results/
+Results/
+# GUI "Visualization" videos, written to the repository root
+/ammper_sim_*.mp4
+/visualization.mp4
 
 # Editor settings
 .vscode/

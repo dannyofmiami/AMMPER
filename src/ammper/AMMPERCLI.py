@@ -86,12 +86,8 @@ elif radType == "c":
 elif radType == 'd':
     radType = "Gamma"
     gen = 15
-    # @TODO PARAMETER MISMATCH: this file, gui/AMMPERGUI.py, and
-    # gui/AMMPERrunsGUI.py all use radGen=10 for Gamma; AMMPER.py,
-    # AMMPERBulk_aB.py, and AMMPERBulk_GAMMAfinal.py all use radGen=2 for
-    # the identical nominal config. Needs science-knowledge decision on which value is correct, then reconcile
-    radGen = 10
-    #radGenE = 10
+    # Gamma radiation is delivered at generation 2
+    radGen = 2
     N = 64 # real 64 ?
 
 # Check for RITRACKS folders that aren't on disk
@@ -313,7 +309,7 @@ for g in range(1,gen+1):
                 radData = np.vstack([radData,radData_trans])
 
                 # @TODO Dropped Event: this delete is inside the for loop, so it runs once per proton energy (14 times), not once. 
-                # The first call removes the placeholder; the other 13 each delete a real energy deposition this changes GCRSim output.
+                # The first call removes the placeholder; the other 13 each delete a real energy depositions which impacts final GCRS data.
                 radData = np.delete(radData,(0),axis = 0)
             # generate ROS data from all traversal energy depositions
             #ROSData = genROS(radData,cells)

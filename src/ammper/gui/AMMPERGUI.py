@@ -352,7 +352,8 @@ class Widget(QWidget):
             self.sliderOn = False
             self.radType = "GCRSim"
             self.horizontalSlider.setValue(1)
-            self.ui.label_11.setText(str(0.5))
+            self.radAmount = 0   # dose comes from the fluence file, not the slider
+            self.ui.label_11.setText("—")
             self.horizontalSlider.setEnabled(self.sliderOn)
             self.gen = 15
             self.radGen = 2
@@ -381,7 +382,7 @@ class Widget(QWidget):
             self.ui.label_11.setText(str(0))
             self.horizontalSlider.setEnabled(self.sliderOn)
             self.gen = 15
-            self.radGen = 10
+            self.radGen = 2   # matching manuscript runs
             self.N = 64
             self.radData = np.zeros([1,6],dtype = float)
             self.ROSData = np.zeros([1,6],dtype = float)
@@ -406,13 +407,13 @@ class Widget(QWidget):
                 self.radAmount = 30
         else:
             if self.radType == "GCRSim":
-                self.radAmount = 0.5
+                self.radAmount = 0   # fluence-defined; no single Gy value
 
             if self.radType == "Deep Space" or self.radType == "Gamma":
                 self.radAmount = 0
 
         self.Gy = float(self.radAmount)
-        self.ui.label_11.setText(str(self.radAmount))
+        self.ui.label_11.setText("—" if self.radType == "GCRSim" else str(self.radAmount))
 
     def onRadioButtonClicked2(self):
         if self.radioButton_5.isChecked():

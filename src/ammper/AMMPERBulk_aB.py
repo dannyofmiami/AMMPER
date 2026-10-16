@@ -86,9 +86,9 @@ elif radType == "c":
 elif radType == 'd':
     radType = "Gamma"
     gen = 15
-    # @TODO PARAMETER Mismatch: radGen=2 here, but AMMPERCLI.py/AMMPERGUI.py/ runs 10
+    # Gamma radiation is delivered at generation 2, as in the manuscript's gamma runs
+    # (AMMPERBulk_GAMMAfinal.py); every entry point uses the same value.
     radGen = 2
-    #radGenE = 10
     N = 64 # real 64 ?
 
 # RITRACKS data check
@@ -253,7 +253,7 @@ for g in range(1,gen+1):
                 energyThreshold = 20
                 for track in range(numTrav):
                     # choose a random track out of the 8 available/proton energy
-                    # @TODO TRACK RANGE: never picks Track7 (0-6 only). Full note in src/ammper/AMMPERCLI.py's Deep Space branch.
+                    # @TODO TRACK RANGE: never picks Track7 (0-6 only).
                     trackNum  = int(rand.uniform(0,7))
                     # generate traversal data for omnidirectional traversals
                     radData_trans = genTraverse_deepSpace(N,protonEnergy,trackNum,energyThreshold)
@@ -292,7 +292,7 @@ for g in range(1,gen+1):
                 # parameter that allows non-damaging energy depositions to be ignored (used to speed up simulation)
                 energyThreshold = 20
                 # choose a random track out of the 8 available/proton energy
-                # @TODO TRACK RANGE: never picks Track7 (0-6 only). Full note in src/ammper/AMMPERCLI.py's Deep Space branch.
+                # @TODO TRACK RANGE: never picks Track7 (0-6 only).
                 trackNum = int(rand.uniform(0,7))
                 # generate traversal data for unidirectional traversals
                 radData_trans = genTraverse_groundTesting(N,protonEnergy,trackNum,energyThreshold,radType)
@@ -300,7 +300,7 @@ for g in range(1,gen+1):
                 radData = np.vstack([radData,radData_trans])
                 
                 #remove placeholder from beginning
-                # @TODO DROPPED EVENTS: this delete runs inside the loop, dropping 13 real GCRSim events per run. Full note in src/ammper/AMMPERCLI.py's GCRSim branch.
+                # @TODO DROPPED EVENTS: this delete runs inside the loop, dropping 13 real GCRSim events per run.
                 radData = np.delete(radData,(0),axis = 0)
             # generate ROS data from all traversal energy depositions
             #ROSData = genROS(radData,cells)
