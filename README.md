@@ -1,234 +1,235 @@
-# AMMPER-2
+# AMMPER v2
 
-**Agent-Based Model for Microbial Populations Exposed to Radiation**
+<p align="center">
+  <img src="images/AMMPER_Logo1.PNG" alt="AMMPER logo" width="420" />
+</p>
 
-AMMPER-2 is a research simulation for studying how ionizing radiation affects
-microbial populations. It models cell growth, direct radiation damage, reactive
-oxygen species (ROS), and DNA repair on a three-dimensional lattice. The model
-supports wild-type and `rad51` yeast phenotypes, proton and gamma exposures,
-ground-test and deep-space environments, and both basic static and
-diffusion-and-decay ROS treatments.
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.9 | 3.10 | 3.11" />
+  <img src="https://img.shields.io/badge/version-2.0-6f6fd6?style=flat-square" alt="Version 2.0" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-NASA%20Open%20Source%20Agreement%201.3-lightgrey?style=flat-square" alt="License: NASA Open Source Agreement 1.3" /></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey?style=flat-square" alt="Platforms: macOS, Windows, Linux" />
+</p>
 
-The repository contains the simulation engine, command-line and graphical
-interfaces, bundled RITRACKS radiation-track inputs, experimental data,
-analysis code, and scripts used to reproduce manuscript figures. AMMPER is
-research software and is not intended for clinical or operational radiation
-risk decisions.
+**AMMPER** (Agent-based Model for Microbial Populations Exposed to Radiation)
+simulates how ionizing radiation affects a growing population of yeast
+(*Saccharomyces cerevisiae*). Every cell is an individual agent on a 3D
+lattice that moves, divides, takes direct radiation damage and damage from
+reactive oxygen species (ROS), and repairs DNA. It models the two strains
+flown on NASA's BioSentinel mission (wild type and the radiation-sensitive
+*rad51*Δ mutant) under 150 MeV proton, gamma, NSRL GCRSim, and deep-space
+radiation, and you can drive it from a command line or a desktop GUI.
 
-## Repository contents
+> [!NOTE]
+> AMMPER is research software. It's meant for studying radiation biology and
+> for teaching. Don't use it for clinical or operational radiation-risk
+> decisions.
 
-| Path | Contents |
-| --- | --- |
-| `src/` | Simulation entry points and the `ammper` model modules |
-| `gui/` | PyQt5 graphical interface and GUI assets |
-| `data/` | Experimental data, fluence tables, and radiation-track inputs |
-| `analysis/` | Growth-curve, alamarBlue, ROS, gamma, and statistical analyses |
-| `results/` | Archived simulation results and figure source assets |
-| `figures/` | Generated publication figures |
-| `revisions_2026/` | Manuscript-revision code, figures, and source files |
-| `ammper_paths.py` | Repository-relative path helpers |
+<p align="center">
+  <img src="docs/images/simulation.gif" alt="A simulated rad51 yeast colony growing over 15 generations after 10 Gy of 150 MeV protons" width="560" />
+  <br/>
+  <em>A <i>rad51</i>Δ colony growing over 15 generations after 10 Gy of 150 MeV protons<br/>
+  Blue circles: healthy cells · orange stars: dead · green: radiation energy deposits.</em>
+</p>
 
-## Installation
+## Table of Contents
 
-AMMPER's supplied environment targets Python 3.10. The versions in
-`requirements.txt` are used for the main simulation and GUI.
-> continue to next section for Apple Silicon Mac install
+- [Quick start](#quick-start)
+- [Screenshots](#screenshots)
+  - [Desktop GUI](#desktop-gui)
+  - [Command line](#command-line)
+- [Running scripts directly](#running-scripts-directly)
+- [Project layout](#project-layout)
 
-1. Clone the repository and enter it:
+- [Citing AMMPER](#citing-ammper)
+- [Contributing](#contributing)
+- [License](#license)
+- [Credits](#credits)
 
-   ```bash
-   git clone https://github.com/nasa/AMMPER.git
-   cd AMMPER
-   ```
+## Quick start
 
-2. Create and activate a virtual environment:
+> [!IMPORTANT]
+> AMMPER needs **Python 3.9, 3.10, or 3.11** ([python.org/downloads](https://www.python.org/downloads/)).
+> Check with `python3 --version` (macOS/Linux) or `py --version` (Windows).
+> On Windows with several versions installed, use `py -3.11` in place of
+> `python3` below, e.g. `py -3.11 -m venv venv`.
 
-   ```bash
-   python3.10 -m venv .venv
-   source .venv/bin/activate
-   ```
-
-   On Windows PowerShell:
-
-   ```powershell
-   .venv\Scripts\Activate.ps1
-   ```
-
-3. Install the dependencies:
-
-   ```bash
-   python -m pip install --upgrade pip
-   python -m pip install -r requirements.txt
-   ```
-
-Run commands from the repository root. Scripts use `ammper_paths.py` to find
-bundled inputs and output directories independent of the clone location.
-
-### Apple Silicon Macs:
-
-If you are installing on an Apple Silicon Mac, **`pip install -r requirements.txt` will fail or hang indefinitely while installing `PyQt5==5.15.9`**. This is due to the `PyQt5-Qt5` binary dependency does not incldue a native `arm64` wheel on PyPI, forcing `pip` to compile it from source. This hangs on a license prompt that `pip` hides from the terminal. 
-
-A fix is to use **Conda-Forge** to install a pre-compiled, native `arm64` binary of PyQt5, and use `pip` only for the remaining pure-Python dependencies.
-
-1. **Install Miniconda** (if you do not already have it):
-
-```bash 
-brew install --cask miniconda 
-
-conda init zsh
-```
-Close and reopen your terminal after this step so the Conda configuration loads.
-
-2. **Use the free Conda-Forge channel.** By default, Conda uses Anaconda's commercial repository, which enforces strict rate limits. Run this once to permanently switch to the free, unrestricted community channel:
-
-```bash 
-echo "channels:" > ~/.condarc
-echo "  - conda-forge" >> ~/.condarc
-echo "channel_priority: strict" >> ~/.condarc
-conda clean --all --yes
-```
-
-3. **Create a dedicated environment for AMMPER**, forcing Conda-Forge with `--override-channels` :
-
-```bash 
-conda create --name ammper python=3.10 -y --override-channels -c conda-forge
-conda activate ammper
-```
-
-4. **Install PyQt5 as a pre-compiled binary from Conda-Forge:**
+From a clone of this repository:
 
 ```bash
-conda install pyqt=5.15.9 -y --override-channels -c conda-forge
+python3 -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install --upgrade pip setuptools wheel
+pip install -e .
 ```
 
-5. **Install the remaining dependencies with `pip`**, skipping the `PyQt5` line since Conda is now managing it:
+| Command | What it does |
+|---|---|
+| `ammper setup` | Checks that dependencies and data are in place, and warns if your machine lacks the memory for the heavier Complex ROS runs |
+| `ammper quickstart` | Runs a short tutorial simulation (a few seconds), no questions asked |
+| `ammper run` | Runs a full simulation, asking you for radiation type, dose, cell type, and ROS model |
+| `ammper gui` | Opens the desktop GUI |
+| `ammper data status` | Shows which RITRACKS radiation-track folders are on this machine |
+| `ammper data verify` | Re-checks those folders against the dataset manifest |
+| `ammper data pull` | Downloads RITRACKS folders from Zenodo: everything, or just what a run needs (`gcrsim`, `deep-space`) |
+| `ammper` | With no arguments, opens a guided menu that picks one of the above |
+| `ammper --help` | Everything above, plus options |
+
+Start with `ammper setup`, then `ammper quickstart`. The tutorial saves its
+output to `results/bulk_aB/quickstart/` and prints the exact path when it
+finishes.
+
+> [!TIP]
+> You can launch `ammper run` and `ammper gui` from any folder. In a clone, results go to
+> `results/` inside the repository (interactive runs: `results/single_runs/`); in a normal
+> install they go to `~/ammper/results/`. Set `AMMPER_HOME` to put them (and downloaded
+> radiation data) somewhere else.
+
+### RITRACKS radiation data
+
+**A normal `git clone` already contains everything the four radiation types need**, so every
+preset in the CLI and the GUI works offline, with no flags and no downloads.
+
+The full RITRACKS dataset has 49 proton-energy folders and is published on Zenodo
+([doi:10.5281/zenodo.22992521](https://doi.org/10.5281/zenodo.22992521)); `ammper data pull` downloads any missing data.
+
+## Screenshots
+
+### Desktop GUI
+
+<p align="center">
+  <img src="docs/images/gui-menu.png" alt="AMMPER GUI main menu" width="700" />
+  <br/>
+  <em>Main menu</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/gui-setup.png" alt="AMMPER GUI simulation setup: radiation type, dose, cell type, ROS model" width="700" />
+  <br/>
+  <em>Simulation setup</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/gui-progress.png" alt="AMMPER GUI simulation progress screen" width="700" />
+  <br/>
+  <em>Simulation running</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/gui-results.png" alt="AMMPER GUI results: 3D plots of the colony at generations 1, 5, 9, 12 and 15" width="700" />
+  <br/>
+  <em>Results: the colony at generations 1, 5, 9, 12 and 15</em>
+</p>
+
+### Command line
+
+<p align="center">
+  <img src="docs/images/cli-quickstart.svg" alt="Terminal output of ammper quickstart" width="700" />
+  <br/>
+  <em><code>ammper quickstart</code>: a tutorial run, no prompts</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/cli-run.svg" alt="Terminal output of an interactive ammper run session" width="700" />
+  <br/>
+  <em><code>ammper run</code>: an interactive simulation</em>
+</p>
+
+## Running scripts directly
+
+The `ammper` command is all you need for single simulations. For batches of
+runs, or to rebuild figures, you can call the scripts directly. They find
+their own paths, so they work from any folder.
 
 ```bash
-pip install -r <(grep -v "PyQt5" requirements.txt)
+# One simulation: radType cellType ROSType dose outputFolder
+#   radType   a = 150 MeV Proton   b = GCRSim   c = Deep Space   d = Gamma
+#   cellType  a = wild type        b = rad51
+#   ROSType   a = Basic   b = Complex (warns if your machine is short of memory)
+#   dose      Proton: 0, 2.5, 5, 10, 20, 30 · others: any placeholder
+python3 -m ammper.AMMPERBulk_aB a a a 2.5 WT_Basic_25
 ```
 
-6. **Verify the installation:**
+Output goes to `results/bulk_aB/<outputFolder>/`. Use the single-letter
+codes; spelled-out names like `"150 MeV Proton"` won't work.
+
+Figures:
 
 ```bash
-python -c "import PyQt5; print('PyQt5 successfully imported!')"
+python3 analysis/growth_curves/stack_growth_curves.py   # main text Figure 1
+python3 analysis/aB/ab_final_plots_panel.py             # main text Figure 2 (panels)
+python3 analysis/aB/stack_ab_figures.py                 # main text Figure 2 (stack)
 ```
 
-> **Note:** Once this Conda environment is set up, use `conda activate ammper` instead of `source .venv/bin/activate` for all future work on this repository.
- If you = use `pyenv`, it can silently override Conda's Python run `which python` to confirm it resolves inside the `ammper` environment.
+In your own scripts, resolve paths through
+`ammper_paths` instead of hardcoding them:
 
-### Dependencies
-
-| Dependency | Version | Purpose |
-| Matplotlib | 3.7.2 | Plotting and figure generation |
-| --- | ---: | --- |
-| MoviePy | 1.0.3 | GUI video generation | 
-| NumPy | 1.25.2 | Arrays and numerical simulation |
-| pandas | 2.1.0 | Experimental and simulation data handling |
-| PyQt5 | 5.15.9 | Graphical interface |
-| scikit-learn | 1.3.0 | Data splitting and analysis utilities |
-| SciPy | 1.11.2 | Scientific calculations and ROS distributions |
-
-FFmpeg is also needed to export videos through MoviePy. Some specialist or
-legacy analysis scripts have dependencies not installed by
-`requirements.txt`, including SMAC/ConfigSpace, OpenPyXL, statsmodels,
-pingouin, COBRApy, and R packages. Inspect the imports in the particular script
-before running it. The core simulation and figure commands below use the pinned
-requirements.
-
-## Usage
-
-### Interactive command-line simulation
-
-Start the prompt-driven interface:
-
-```bash
-python src/AMMPERCLI.py
+```python
+import ammper_paths as P
+df = pd.read_csv(P.ab_experimental("AlamarblueRawdataWTKGy.csv"))
+sim = P.bulk_aB("WT_Basic_0")
+out = P.figures("my_panel.png")    # creates figures/ if needed
 ```
 
-The program asks for the radiation environment, dose where applicable, cell
-type, and ROS model. Interactive runs write their description, cell-state
-data, and plots beneath a timestamped `Results/` directory.
+(Code inside `src/ammper/` uses `from ammper import paths as P`; see
+`CONTRIBUTING.md`.)
 
-### Scripted simulation
+## Project layout
 
-For a non-interactive proton run:
-
-```bash
-python src/AMMPERBulk_aB.py a a a 2.5 WT_Basic_25
+```
+src/ammper/            the simulation (installed as the `ammper` package)
+  cli.py                 the `ammper` command
+  AMMPERCLI.py           interactive simulation (`ammper run`)
+  AMMPERBulk_aB.py       non-interactive runner (quickstart, scripts, batches)
+  cellDefinition.py      the Cell agent: movement, division, damage, repair
+  genTraverse_*.py       radiation tracks (ground-test and deep-space)
+  genROSOld.py           ROS model (Basic)
+  GammaRadGen.py         gamma radiation events
+  cellPlot*.py           per-generation 3D plots
+  paths.py               path resolution
+  gui/                   desktop GUI (PyQt5) with its fonts and images (`ammper gui`)
+  data/                  read-only data that ships with the package: fluence tables, apoptosis data,
+                         the Zenodo MANIFEST.json and the 150 MeV RITRACKS folder
+data/
+  radiation_input/       RITRACKS folders you download with `ammper data pull` (in a clone)
+  experimental/          alamarBlue and BioSentinel measurements (manuscript analysis inputs)
+analysis/              alamarBlue fitting, growth curves, ROS and gamma analysis
+revisions_2026/        manuscript revision code and figures
+results/               simulation output
+tests/                 test suite (`pytest`)
+docs/                  documentation assets
 ```
 
-The five positional arguments are:
+## Citing AMMPER
 
-1. radiation: `a` = 150 MeV proton, `b` = GCRSim, `c` = deep space,
-   `d` = gamma;
-2. cell type: `a` = wild type, `b` = `rad51`;
-3. ROS model: `a` = basic, `b` = diffusion and decay;
-4. dose in Gy (proton mode supports `0`, `2.5`, `5`, `10`, `20`,
-   and `30`); and
-5. output-group name.
+If you use AMMPER in your work, please cite:
 
-This example writes timestamped output under
-`results/bulk_aB/WT_Basic_25/`. The bulk runner intentionally waits 61 seconds
-at the end to prevent timestamp collisions. Pass the single-letter codes shown
-above; expanded names are not accepted.
-
-
-### Graphical interface
-
-```bash
-python gui/AMMPERGUI.py
-```
-
-A desktop session is required. Video export also requires FFmpeg on the system
-path.
-
-### Reproduce the main figure panels
-
-The repository includes the required archived output and panel assets:
-
-```bash
-python analysis/growth_curves/stack_growth_curves.py
-python analysis/aB/ab_final_plots_panel.py
-python analysis/aB/stack_ab_figures.py
-```
-
-Generated PDF, PNG, and SVG files are written to `figures/`. The manuscript
-and revision-specific reproduction scripts are in `revisions_2026/`; those
-scripts may require the optional dependencies noted above.
+> Singh A., Santa Maria S. R., Gentry D. M., Liddell L. C., Lera M. P., Lee J. A.
+> Agent-based Model for Microbial Populations Exposed to Radiation (AMMPER)
+> simulates yeast growth for deep-space experiments.
+> *Gravitational and Space Research* 12(1):159–176 (2024).
+> [doi:10.2478/gsr-2024-0012](https://doi.org/10.2478/gsr-2024-0012)
 
 ## Contributing
 
-Contributions that improve correctness, reproducibility, documentation, or
-usability are welcome.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). Run the tests with:
 
-1. Open an issue describing the bug or proposed change. For model changes,
-   explain the scientific rationale and expected effect on results.
-2. Fork the repository, create a focused branch, and keep unrelated changes in
-   separate commits.
-3. Use four-space indentation, descriptive names, docstrings for reusable
-   functions, and repository-relative paths through `ammper_paths.py`. Do not
-   introduce machine-specific absolute paths.
-4. Update documentation and dependency declarations when setup or behavior
-   changes. Do not commit local environments, caches, or newly generated bulk
-   results unless they are required reference data.
-5. Submit a pull request summarizing the change and validation commands.
-   Identify altered numerical output or regenerated figures, and include
-   before-and-after output when scientific results change.
+```bash
+pip install -e ".[dev]"
+pytest
+```
 
 ## License
-This software is released under the **NASA Open Source Agreement (NOSA) Version 1.3**. Reference Number ARC-18739-1
 
-A copy of the full license text should be included in the `LICENSE` file of this repository. You can also view the official terms online at the [Open Source Initiative (OSI)](https://opensource.org). 
+Released under the [NASA Open Source Agreement 1.3](LICENSE).
 
-## Contact
+## Credits
 
-For scientific or project questions, contact the manuscript's corresponding
-author, **Jessica Lee**, at **jessica.a.lee@nasa.gov**.
+- Coded and created by **Amrita Singh** and **Daniel Palacios**
+- Conceptualized by **Amrita Singh**
+- Graphical user interface design by **Madeline Marous**
+- Logo design by **Madeline Marous** and **Sam Lino**
+- Additional software support by **Danny Mejia**
+- Repository control, open-source distribution, and oversight by **Dr. Jessica A. Lee**
 
-Additional project contacts:
-- **Daniel Palacios** — [Daniel.Palacios@bcm.edu](mailto:Daniel.Palacios@bcm.edu)
-- **Pramesh Sharma** — [prameshsharma25@gmail.com](mailto:prameshsharma25@gmail.com)
-
-For bug reports, feature requests, and contribution proposals, use the
-[GitHub issue tracker](https://github.com/nasa/AMMPER/issues) so discussion and
-resolution remain visible to the project team.
+Created at NASA Ames Research Center.

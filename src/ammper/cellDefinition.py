@@ -94,6 +94,8 @@ outputs:
     c: cell object with adjusted parameters
                 
 @author: asingh21
+
+@edited by @dannyofmiami
 """
 
 class Cell:
@@ -362,20 +364,28 @@ class Cell:
             
             return self
      #########################################################################
-    def cellROS(self,g,radGen,ROSData):
+    def cellROS(self,g,radGen,ROSData,radType):
         import random as rand
         import numpy as np
         import pandas as pd
-        
+
         currPos = self.position
         numSSBs = self.numSSBs
         OH = 0
         H2O2 = 0
         nucleus_OH = 0
-        
+
         cellHitBool = 0
         nucleusHitBool = 0
         apopOccurs = 0
+
+        if radType == "Deep Space":
+            ROSData_all = np.asarray(ROSData)
+            genMask = ROSData_all[:,6].astype(int) == g
+            if genMask.any():
+                ROSData = ROSData_all[genMask][:,0:6]
+            else:
+                ROSData = np.zeros([1,6],dtype = float)
 
         # ROSData[0:3]###############################3
         # # pandas =>
@@ -394,6 +404,7 @@ class Cell:
             dp = dp.loc[((dp["Posy"] <= currPos[1] + 2) & (dp["Posy"] >= currPos[1] - 2))]
 
         if dp.empty == False:
+            #TODO address this Posz issue in v3. bitwise issue in the parenthesis
             dp = dp.loc[((dp["Posz"] <= currPos[2]) + 2 & (dp["Posz"] >= currPos[2] - 2))]
 
         if dp.empty == False:
@@ -424,12 +435,9 @@ class Cell:
                 #     print('No ROS damage')
         
         #interpolated data based on data points
-        # Moved to data/experimental/ in the Aug 2026 reorganization; resolve
-        # relative to the repository root rather than the working directory.
-        import os as _os
-        _repo = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-        apopDat = np.genfromtxt(_os.path.join(_repo, 'data', 'experimental',
-                                              'Apoptosis_Data.txt'), skip_header=1)
+        # table inside the package (ammper/data/experimental/); resolved
+        from ammper import paths as _P
+        apopDat = np.genfromtxt(_P.apoptosis_data(), skip_header=1)
         
         Avogadro = 6.022e23
         H2O2_concentration = round(H2O2/(Avogadro*0.001*27),1)
@@ -458,7 +466,7 @@ class Cell:
         
         return self
     
-    def cellROS_rad51(self,g,radGen,ROSData):
+    def cellROS_rad51(self,g,radGen,ROSData,radType):
         import random as rand
         import numpy as np
         import pandas as pd
@@ -472,6 +480,14 @@ class Cell:
         cellHitBool = 0
         nucleusHitBool = 0
         apopOccurs = 0
+
+        if radType == "Deep Space":
+            ROSData_all = np.asarray(ROSData)
+            genMask = ROSData_all[:,6].astype(int) == g
+            if genMask.any():
+                ROSData = ROSData_all[genMask][:,0:6]
+            else:
+                ROSData = np.zeros([1,6],dtype = float)
 
         # ROSData[0:3]###############################3
         # # pandas =>
@@ -490,6 +506,7 @@ class Cell:
             dp = dp.loc[((dp["Posy"] <= currPos[1] + 2) & (dp["Posy"] >= currPos[1] - 2))]
 
         if dp.empty == False:
+            #TODO address this Posz issue in v3. bitwise issue in the parenthesis
             dp = dp.loc[((dp["Posz"] <= currPos[2]) + 2 & (dp["Posz"] >= currPos[2] - 2))]
 
         if dp.empty == False:
@@ -523,12 +540,9 @@ class Cell:
         # .3 mM H2O2 -> 20% apoptotic death
         
         #interpolated data based on data points
-        # Moved to data/experimental/ in the Aug 2026 reorganization; resolve
-        # relative to the repository root rather than the working directory.
-        import os as _os
-        _repo = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-        apopDat = np.genfromtxt(_os.path.join(_repo, 'data', 'experimental',
-                                              'Apoptosis_Data.txt'), skip_header=1)
+        # table inside the package (ammper/data/experimental/); resolved
+        from ammper import paths as _P
+        apopDat = np.genfromtxt(_P.apoptosis_data(), skip_header=1)
         
         Avogadro = 6.022e23
         H2O2_concentration = round(H2O2/(Avogadro*0.001*27),1)

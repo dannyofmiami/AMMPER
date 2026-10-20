@@ -49,7 +49,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, REPO)
 import ammper_paths as P  # noqa: E402
 
-SIMULATOR = os.path.join(REPO, 'src', 'AMMPERBulk_GAMMAfinal.py')
+SIMULATOR = os.path.join(REPO, 'src', 'ammper', 'AMMPERBulk_GAMMAfinal.py')
 
 #: Doses simulated, in Gy. Eleven of the fifteen doses the gamma alamarBlue
 #: experiment read out: every dose from 0.01 to 30 Gy.

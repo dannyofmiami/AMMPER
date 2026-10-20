@@ -17,13 +17,15 @@ import subprocess
 import random
 # from AMMPERBulk_aB import finish
 
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
+from PyQt5.QtGui import QIcon, QFontDatabase
 
 # AMMPER modules
 import numpy as np
 import random as rand
 import uuid as uuid
 from ammper.cellDefinition import Cell
+from ammper.data_check import MissingRadiationDataError, check_ritracks_available
 from ammper.genTraverse_groundTesting import genTraverse_groundTesting
 from ammper.genTraverse_deepSpace import genTraverse_deepSpace
 from ammper.genROS import genROS
@@ -74,6 +76,8 @@ class Widget(QWidget):
         self.dial = self.ui.dial
         self.dial.valueChanged.connect(self.dialChange)
 
+        # @TODO DEPRECATE THIS: this class references 10 widgets that do
+        # not exist anywhere in formgui.py's  Ui_Widget 
         self.verticalSlider = self.ui.verticalSlider
         
         self.progressBar = self.ui.progressBar
@@ -181,6 +185,7 @@ class Widget(QWidget):
         
         self.radioButton_7.toggled.connect(self.onRadioButtonClicked3)
         self.radioButton_8.toggled.connect(self.onRadioButtonClicked3)
+        self.radioButton_7.setChecked(True)
 
         self.checkBox.stateChanged.connect(self.fileExport)
         self.checkBox_2.stateChanged.connect(self.fileExport)
@@ -202,7 +207,7 @@ class Widget(QWidget):
         self.radType = ""  
         self.N = 0 
         self.gen = 0
-        self.ROSType = ""
+        self.ROSType = "Basic ROS"
         self.simAmt = 1
         self.Gy = float(0)
         self.simDescription = ""
@@ -235,7 +240,7 @@ class Widget(QWidget):
             choiceA = input("Hello, and welcome to the AMMPER Runs CLI. Features may be limited. Press 'a' for regular testing, 'b' for gamma, or 'c' to quit.")
             if choiceA == 'a':
                 print("Regular testing chosen.")
-                subprocess.call(["python", "AMMPERruns_aB.py"]) # Launch CLI
+                subprocess.call([sys.executable, "-m", "ammper.AMMPERruns_aB"]) # Launch CLI
                 print("Please enter the following prompts to finish setting up your simulation.")
                 self.simNum = int(input("Enter the amount of runs you would like to complete today."))
                 print("Runs: ", self.simNum)
@@ -268,7 +273,8 @@ class Widget(QWidget):
                 elif ROSSelect == 'b':
                     labelROS = 'Complex'
                 self.instruct = "python .\AMMPERBulkGAMMAFINAL.py d " + cellSelect + ' ' + ROSSelect + ' ' + radSelect + ' ' + labelCell + '_' + radSelect
-                subprocess.call(["python", "AMMPERrunsGAMMAFINALmodule_aB.py"]) # Launch CLI
+
+                subprocess.call([sys.executable, "-m", "ammper.AMMPERruns_GAMMAFINAL"]) # Launch CLI
             elif choiceA == 'c':
                 i = 0
             else:
@@ -281,6 +287,8 @@ class Widget(QWidget):
         if self.display:
             self.stackedWidget.setCurrentIndex(2)
             self.progressBar.setValue(0)
+
+            QApplication.processEvents()
             self.simSetup()
         else: 
             self.stackedWidget.setCurrentIndex(2)
@@ -335,7 +343,7 @@ class Widget(QWidget):
                 self.sliderOn = False
                 self.radType = "Gamma"
                 self.gen = 15
-                self.radGen = 10
+                self.radGen = 2   # as in the manuscript's gamma runs; same value in every entry point
                 self.N = 64
                 self.radData = np.zeros([1,6],dtype = float)
                 self.ROSData = np.zeros([1,6],dtype = float)
@@ -472,10 +480,16 @@ class Widget(QWidget):
 
     def simSetup(self):
         if self.doSim:
+            try:
+                check_ritracks_available(self.radType)
+            except MissingRadiationDataError as exc:
+                QMessageBox.warning(self, "Missing radiation data", str(exc))
+                return
+
             self.simDescription = "Cell Type: " + self.cellType + "\nRad Type: " + self.radType + "\nSim Dim: " +  str(self.N) + "microns\nNumGen: " + str(self.gen) + "ROS model: " + str(self.ROSType)
 
-        # results folder name with the time that the simulation completed
-            resultsName = time.strftime('%m-%d-%y_%H-%M') + "/"
+        # results folder name with the time that the simulation completed.
+            resultsName = "ammper_" + time.strftime('%Y-%m-%d_%H-%M-%S') + "/"
             # determine path that all results will be written to
             resultsFolder = "Results/"
             #currPath = os.path.dirname("AMMPER")
@@ -528,6 +542,10 @@ class Widget(QWidget):
                 self.label_2.setText("Generation " + str(g))
                 current_value = self.progress_bar.value()
                 self.progressBar.setValue(current_value + 5)
+                # Without this, the label/progress bar updates above just
+                # sit queued - Qt only paints them once this whole
+                # (blocking) method returns.
+                QApplication.processEvents()
 
             self.fact_list = ["AMMPER incorporates data from BioSentinel, the first biological CubeSat to fly beyond Low Earth Orbit (LEO).",
                             "AMMPER models after yeast (Saccharomyces cerevisiae) cells because they are eukaryotic, therefore similar in biology to human cells.", 
@@ -613,6 +631,7 @@ class Widget(QWidget):
                         energyThreshold = 20
                         for track in range(numTrav):
                             # choose a random track out of the 8 available/proton energy
+                            # @TODO TRACK RANGE: int(rand.uniform(0,7)) gives 0-6, never Track7; should be rand.randint(0,7). Left as-is to match the manuscript (see docs/v2_engine_parity.md
                             trackNum  = int(rand.uniform(0,7))
                             # generate traversal data for omnidirectional traversals
                             radData_trans = genTraverse_deepSpace(self.N,protonEnergy,trackNum,energyThreshold)
@@ -623,13 +642,14 @@ class Widget(QWidget):
                             if self.ROSType == "Basic ROS":
                                 ROSData_new = genROSOld(radData_trans, cells)
                             
-                            # creates a column indicating what generation the ROS and radData occured at
+                            # creates a column indicating what generation the radData occured at
                             genArr = np.ones([len(radData_trans),1],dtype=int)*g
                             # compile radData with the generation indicator
                             radData_trans = np.hstack((radData_trans,genArr))
                             # compile radData from this traversal with all radData
                             radData = np.vstack([radData,radData_trans])
-                            
+
+                            genArr = np.ones([len(ROSData_new),1],dtype=int)*g
                             # compile ROSData with the generation indicator
                             ROSData_new = np.hstack((ROSData_new,genArr))
                             #compile ROSData with all ROSData
@@ -647,6 +667,7 @@ class Widget(QWidget):
                         # parameter that allows non-damaging energy depositions to be ignored (used to speed up simulation)
                         energyThreshold = 20
                         # choose a random track out of the 8 available/proton energy
+                        # @TODO TRACK RANGE: int(rand.uniform(0,7)) gives 0-6, never Track7; should be rand.randint(0,7). Left to match the manuscript (see docs/v2_engine_parity.md); fix in 3.0.
                         trackNum = int(rand.uniform(0,7))
                         # generate traversal data for unidirectional traversals
                         radData_trans = genTraverse_groundTesting(self.N,protonEnergy,trackNum,energyThreshold,self.radType)
@@ -727,9 +748,9 @@ class Widget(QWidget):
                 for c in cells:
                     health = c.health
                     if self.cellType == "wt":
-                        ROSCell = c.cellROS(g,self.radGen,ROSData)
+                        ROSCell = c.cellROS(g,self.radGen,ROSData,self.radType)
                     elif self.cellType == "rad51":
-                        ROSCell = c.cellROS_rad51(g,self.radGen,ROSData)
+                        ROSCell = c.cellROS_rad51(g,self.radGen,ROSData,self.radType)
                     newHealth = ROSCell.health
                     if health != newHealth:
                         ROSCellPos = ROSCell.position
@@ -836,9 +857,14 @@ class Widget(QWidget):
         ######################################## Random decay, lifetime ROS for complex model ################################
             if self.ROSType == "Complex ROS":
                 if g > self.radGen:
-                    ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
                     # half life 1 gen = .5, half life 2 gen = .707, half life 3 gen = .7937, 20 min half life = .125
-                    ROSData = ROSDatak
+                    if len(ROSData) > 1:
+                        ROSDatak  , ROSData_decayed = train_test_split(ROSData, train_size = 0.5)
+                        ROSData = ROSDatak
+                    elif len(ROSData) == 1 and rand.random() < 0.5:
+                        # a single remaining event can't be split 50/50 by count;
+                        # apply the same half-life odds directly instead
+                        ROSData = np.zeros([1,6],dtype = float)
 
             
             self.label_2.setText("Calculations complete. Plotting and writing data.")
@@ -927,6 +953,18 @@ class Widget(QWidget):
 
 if __name__ == "__main__":
     app = QApplication([])
+    # The .ui-generated forms reference "IBM Plex Sans" (an open-source
+    # replacement for "Franklin Gothic Medium/Book", which isn't installed
+
+    _fonts_dir = _os.path.join(P.ROOT, "gui", "fonts", "IBMPlexSans")
+    for _font_file in ("IBMPlexSans-Regular.ttf", "IBMPlexSans-Medium.ttf",
+                       "IBMPlexSans-Italic.ttf", "IBMPlexSans-MediumItalic.ttf"):
+        QFontDatabase.addApplicationFont(_os.path.join(_fonts_dir, _font_file))
+        
+    app.setApplicationName("AMMPER")
+    app.setApplicationDisplayName("AMMPER")
+    app.setOrganizationName("NASA AMMPER")
+    app.setWindowIcon(QIcon(_os.path.join(P.ROOT, "images", "ammperbitlogo.ico")))
     widget = Widget()
     widget.show()
     sys.exit(app.exec())

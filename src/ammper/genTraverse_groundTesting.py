@@ -31,13 +31,11 @@ def genTraverse_groundTesting(N,protonEnergy,trackNum,energyThreshold,radType):
 
     # create path to access data
     trackStr = str(trackNum)
-    # RITRACKS input moved to data/radiation_input/ritracks/ in the Aug 2026
-    # reorganization; resolve it relative to the repository root so the
-    # simulation runs from any working directory.
+    # RITRACKS folders: the 150 MeV tutorial folder ships inside the package, the others are
+    # downloaded (`ammper data pull`); ammper.paths looks in both, from any working directory.
     import os as _os
-    _repo = _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-    path = _os.path.join(_repo, 'data', 'radiation_input', 'ritracks',
-                         protonEnergyStr, 'Track' + trackStr) + _os.sep
+    from ammper import paths as _P
+    path = _P.radiation_input(protonEnergyStr, 'Track' + trackStr) + _os.sep
     ElStr = 'ElEvents.dat'
     IonStr = 'IonEvents.dat'
     #PCStr = 'PCEvents.dat'

@@ -7,6 +7,7 @@ Created on Mon Feb  7 08:31:34 2022
 
 """
 Fixed daniel * 
+& @dannyofmiami
 """
 
 import pandas as pd
@@ -27,8 +28,8 @@ def cellPlot(data,gen,radData,ROSData,radGen,N,plots_dir):
 
     minmax = get_fixed_mins_maxs(0, N)
 
-    # COLOR BLIND SAFE COLORS
-    healthy = '#91bfdb'
+    # COLOR BLIND SAFE COLORS (ColorBrewer RdYlBu, darkened ~20% for
+    healthy = '#5a9fc9'
     damaged = '#ffffbf'
     dead = '#fc8d59'
 
@@ -71,5 +72,9 @@ def cellPlot(data,gen,radData,ROSData,radGen,N,plots_dir):
         ax.scatter(data3[:, 1], data3[:, 2], data3[:, 3], c=dead, alpha=1, marker = '*')
         ax.scatter(radData[:, 0], radData[:, 1], radData[:, 2], c='#9ED9A1', alpha=1, marker = 'o')
 
-        fig.savefig(plots_dir + figName, dpi = 300)
+        # This is only ever used for the GUI's live preview, not the full size plots for manuscript
+        # bringing the dpi down for faster GUI speeds.
+        fig.savefig(plots_dir + figName, dpi = 150)
+
+        plt.close(fig)
 

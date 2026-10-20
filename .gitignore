@@ -15,3 +15,33 @@ Thumbs.db
 .venv/
 venv/
 env/
+
+# Simulation output from `ammper run`, `ammper quickstart` and `ammper gui` in a clone
+# (data, plots and simDescription.txt; older versions wrote to Results/)
+results/
+Results/
+# GUI "Visualization" videos, written to the repository root
+/ammper_sim_*.mp4
+/visualization.mp4
+
+# Editor settings
+.vscode/
+
+# Editor / IDE leftovers (swap files, backups, Qt Creator per-user session files)
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.pyproject.user
+*.pro.user
+.idea/
+
+# Build and coverage output
+build/
+dist/
+.coverage
+htmlcov/
+
+# RITRACKS folders fetched with `ammper data pull`
+data/radiation_input/ritracks/
